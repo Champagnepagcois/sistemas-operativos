@@ -36,7 +36,7 @@ void up(int semid){
 
 /********Pide memoria compartida y asigna la direccion a un apuntador****/
 
-void GetMemoryShared(int clave, int tam_memo, void  **apt_mat){
+void getMemoryShared(int clave, int tam_memo, void  **apt_mat){
   int memoria;
   int *dato_memoria;
   key_t llave_memoria;
@@ -123,8 +123,8 @@ int main(){
   printf("\n\n*****************Solicitamos una region de memoria compartida*****************\n\n");
 
   int *apt_mat_a, *apt_mat_b;
-  GetMemoryShared(CLAVE_MAT_A, NUM_FILAS*NUM_COLUMNAS,(void **)&apt_mat_a);
-  GetMemoryShared(CLAVE_MAT_B, NUM_FILAS,(void **) &apt_mat_b);
+  getMemoryShared(CLAVE_MAT_A, NUM_FILAS*NUM_COLUMNAS,(void **)&apt_mat_a);
+  getMemoryShared(CLAVE_MAT_B, NUM_FILAS,(void **) &apt_mat_b);
 
   //Asignamos valores en la MC
   printf("\nPadre: Se asignan los valores de la matriz en la region de memoria compartida.....\n");
