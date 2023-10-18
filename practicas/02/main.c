@@ -43,7 +43,7 @@ void getMemoryShared(int clave, int tam_memo, void  **apt_mat){
   llave_memoria = ftok("archivo",clave);//Crea un ID
   memoria = shmget(llave_memoria,tam_memo*sizeof(int), IPC_CREAT | PERMISOS);//ID memoria compartida
   if (memoria == -1) {
-    perror("\nError al crear la memoria compartida\n");
+    perror("\nError al pedir region en la memoria compartida\n");
     exit(-1);
   };
   *apt_mat = (int *)shmat(memoria,0,0); //direccion de la MC
