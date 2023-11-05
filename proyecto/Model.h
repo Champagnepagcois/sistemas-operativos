@@ -2,18 +2,34 @@
 #define MODEL_H
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
-//Se encarga ded todo lo que deberia se DB
-//CRUD, conexion a DB, etc
+/*************Constantes****************/
+#define INSERT         300
+#define SELECT         301
+#define UPDATE         302
+#define DELETE         304
 
+#define USUARIO        100 
+#define CATEGORIA      101
+#define PRODUCTO       102
+#define VENTA          103
+#define DETALLEVENTA   104
+#define PROVEEDOR      105
+#define ADQUISICION    106
+
+#define QUERYSUCCESS 200;
+#define ERRORFILEOPEN 404;
+
+/**************Modelos******************/
 struct Usuario {
-  int ID_usuario;
-  char nombre [15];
+  int ID_usuario; //lon 6
+  char nombre [15]; 
   char usuario [25];
   char password [120];
-  int typeUser;
-  int logged;
+  int typeUser; // lon 2
+  int logged;   // 1on 1
   struct Usuario* siguiente;
 };
 
@@ -23,14 +39,13 @@ struct Categoria{
   struct Categoria* siguiente;
 };
 
-
 struct Producto {
-  int ID_producto;
+  int ID_producto; //lon 6
   char nombre [20];
-  int cantidad;
+  int cantidad;   // lon 1000
   char descripcion [100]; 
-  long double precio;
-  int ID_categoria;
+  long double precio; //lon 10
+  int ID_categoria;     //6
   struct Producto* siguiente;
 };
 
@@ -68,24 +83,66 @@ struct Adquisicion{
   struct Adquisicion* siguiente;
 };
 
-void signin(char usuario,char password);
-void signout();
+/*******Modelos funcionamiento**********/
+struct Nodo {
+  void* dataTabla;
+  struct Nodo* siguiente;
+};
+
+struct Condicion {
+  char* field;
+  char* operador;
+  char* valor;
+  struct Condicion* siguiente;
+};
+
+struct QueryKeyValue {
+  char* field;
+  char* value;
+  struct QueryKeyValue* next;
+};
+
+struct Query {
+  int typeQuery;
+  int table;
+  struct QueryKeyValue* keyValue;
+  struct Condicion* condition;
+  char* fileName;
+  char* chmod;
+  FILE* file;
+};
+
+/************Operaciones Query *****************/
+
+void signin(char,char);
+/***************Queries*****************/
+
+void structToStr(struct Query*);
+void usuarioTostr(struct Query*, char*);
+
+int newQuery(struct Query*);
+int QueryInsert (struct Query*);
+int QuerySelect (struct Query*);
+int QueryUpdate (struct Query*);
+int QueryDelete (struct Query*);
 
 
 
-/**********Control de datos***********/
+/***********************Logic IO*************************/
+
+int openFile(struct Query*);
+
+
+
+/********************************************************/
+
+/****Control de estructura de datos****/
+
+struct Nodo* crearNodo(void* dataTabla);
+void insertarNodoA(struct Nodo** InicioNodo, void* dataTabla);
+void insertarNodoZ(struct Nodo** InicioNodo, void* dataTabla);
+  
 struct Producto* newProducto(int ID_producto,const char* nombre,int cantidad,const char* descripcion, long double precio,int ID_categoria);
 void insertarProducto(struct Producto** InicioLista, int ID_producto,const char* nombre,int cantidad,const char* descripcion, long double precio,int ID_categoria);
 void freeProducto(); //por hacer
-/***********************************/
-
-
-
-
-/*************Queries***************/
-void selectUsers(struct Usuario usuario);
-void selectProducts();
-/***********************************/
-
-
 #endif

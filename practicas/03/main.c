@@ -6,8 +6,12 @@
 #define NUM_COLUMNAS 9
 #define NUM_FILAS 3
 
+
+void crearError();
+void *operacionHilo(void *arg);
+
 /****Definimos la estructura que mandaremos como parametro a la funcion****/
-typedef struct Parametro { 
+struct Parametro { 
   int* filaMAtriz; //Definir la direccion de memoria donde empieza la fila de la matriz
   int* resultadoMAtriz; //Definir la direccion de memoria del resultado
   int tam_col;
