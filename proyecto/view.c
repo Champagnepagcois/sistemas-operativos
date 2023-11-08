@@ -25,50 +25,44 @@ void showAuthPage(struct Usuario user){
     int ch;
     int contrasena_index = 0;
 
-
-
     // Capturar el usuario
     while (1) {
         ch = mvwgetch(win, 2, 15 + contrasena_index);
 
-        if (ch == '\n' || ch == KEY_ENTER)
-            break;
+        if (ch == '\n' || ch == KEY_ENTER) break;
 
         if (contrasena_index < sizeof(usuario) - 1) {
             usuario[contrasena_index++] = ch;
             waddch(win, ch);
             wrefresh(win);
-        }
-    }
+        };
+    };
     usuario[contrasena_index] = '\0';
     contrasena_index =0;
     // Capturar la contraseña y mostrar asteriscos
     while (1) {
         ch = mvwgetch(win, 3, 15 + contrasena_index);
 
-        if (ch == '\n' || ch == KEY_ENTER)
-            break;
+        if (ch == '\n' || ch == KEY_ENTER) break;
 
         if (contrasena_index < sizeof(contrasena) - 1) {
             contrasena[contrasena_index++] = ch;
             waddch(win, '*');
             wrefresh(win);
-        }
-    }
+        };
+    };
     contrasena[contrasena_index] = '\0';
 
     // Simular la autenticación
-    if (strcmp(usuario, "") == 0 && strcmp(contrasena, "") == 0) {
+    if(strcmp(usuario, "") == 0 && strcmp(contrasena, "") == 0) {
         mvwprintw(win, 5, 2, "Inicio de sesión exitoso!");
-    } else {
+    }else{
         mvwprintw(win, 5, 2, "Inicio de sesión fallido. Intente de nuevo.");
-    }
-
+    };
     wrefresh(win);
     wgetch(win);
 
     delwin(win);
     endwin(); // Finalizar ncurses
     return;
-
 }
