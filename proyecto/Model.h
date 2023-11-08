@@ -97,8 +97,8 @@ struct Condicion {
 };
 
 struct QueryKeyValue {
-  char* field;
-  char* value;
+  char field [20];
+  char value [20];
   struct QueryKeyValue* next;
 };
 
@@ -107,8 +107,8 @@ struct Query {
   int table;
   struct QueryKeyValue* keyValue;
   struct Condicion* condition;
-  char* fileName;
-  char* chmod;
+  char fileName [15];
+  char chmod [3];
   FILE* file;
 };
 

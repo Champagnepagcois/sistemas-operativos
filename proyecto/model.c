@@ -50,8 +50,11 @@ void insertarProducto(struct Producto** InicioLista, int ID_producto,const char*
 
 /*************Logica query***************/
 int newQuery(struct Query* consulta){
+  printf("\nAqui paso en newQuery()\n");
+  printf("\ntypeQuery = %d\n", consulta->typeQuery);
   switch (consulta->typeQuery){
   case INSERT:
+    printf("\nSi entra al insert\n");
     return QueryInsert(consulta);
     break;
   case SELECT:
@@ -81,8 +84,9 @@ int newQuery(struct Query* consulta){
 
 /*************FileIO***************/
 int openFile(struct Query* consulta){
-  FILE* fichero = fopen(consulta->fileName,consulta->chmod);
-  if(fichero == NULL){
+  printf("Aqui se abre el archivo");
+  consulta->file = fopen(consulta->fileName, consulta->chmod);
+  if(consulta->file == NULL){
     printf("\nNo se pudo abrir el archivo\n");
     return ERRORFILEOPEN;
   };
@@ -98,19 +102,24 @@ void structToStr(struct Query* consulta){
 };
 /*************Logic query***********/
 int QueryInsert(struct Query* consulta){
-  char output [500];
+  printf("\nAqui paso en QueryInsert()\n");
+  char output [500] = {'\0'};
   FILE* file;
-  consulta->file = file;
+  //consulta->file = file;
 
 
   switch (consulta->table){
+
   case USUARIO:
-  openFile(consulta);
-  //START CODE
-  usuarioTostr(consulta,output);
-  fprintf(file,"%s",output);
-  //END
-  fclose(file);
+    printf("\nEntro al case de USUARIO\n");
+    openFile(consulta);
+    //START CODE
+    usuarioTostr(consulta,output);
+    printf("\n\n%s\n\n",output);
+    fprintf(consulta->file,"%s",output);
+    //END
+    fclose(consulta->file);
+
   break;
   case CATEGORIA:
   /* code */
@@ -148,9 +157,14 @@ int QueryDelete(struct Query* consulta){
 
 void usuarioTostr(struct Query* consulta, char* output){
   struct QueryKeyValue* curent = consulta->keyValue;
+  if(curent == NULL){
+    printf("\ncurrent es  null\n");
+    strcat(output,"No hay nada");
+  }
   while (curent != NULL){
     strcat(output,curent->value);
     curent = curent->next;
+    strcat(output,"\t"); //agregar tabulador
   };
   return;
 };

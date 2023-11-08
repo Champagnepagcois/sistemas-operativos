@@ -55,6 +55,7 @@ void showAuthPage(struct Usuario user){
 
     // Simular la autenticación
     if(strcmp(usuario, "") == 0 && strcmp(contrasena, "") == 0) {
+        user.logged = 1;
         mvwprintw(win, 5, 2, "Inicio de sesión exitoso!");
     }else{
         mvwprintw(win, 5, 2, "Inicio de sesión fallido. Intente de nuevo.");

@@ -2,4 +2,4 @@
 
 void Auth(struct Usuario user){
   showAuthPage(user);
-}
+};
