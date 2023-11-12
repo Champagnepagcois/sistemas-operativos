@@ -123,7 +123,7 @@ void fileReader(){
     if(tamaño == -1){
       perror("Error al obtener el tamaño del archivo");
       fclose(file);
-      return 1;
+      return;
     };
 
     // Retroceder hasta el inicio de la última línea
