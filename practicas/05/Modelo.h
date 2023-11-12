@@ -24,6 +24,7 @@
 #define CLAVE_SERVIDOR_SEM 's'
 #define CLAVE_SERVIDOR_MC 'm'
 #define CLAVE_HILO_SEM 'h'
+#define CLAVE_HILO_IO 'i'
 
 /**************** Estructuras *************/
 struct Request{
@@ -57,6 +58,8 @@ void getMemoryShared(int clave, struct Request *request);
 void service(pid_t *pid_client);
 void *serviceThread(void *arg);
 void shmWrite(struct Request *request);
+void fileWrite(struct Request *request);
+void fileReader();
 
 
 
