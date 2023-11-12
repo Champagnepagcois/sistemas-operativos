@@ -25,6 +25,7 @@
 #define CLAVE_SERVIDOR_MC 'm'
 #define CLAVE_HILO_SEM 'h'
 #define CLAVE_HILO_IO 'i'
+#define CLAVE_HILO_MC 'c'
 
 /**************** Estructuras *************/
 struct Request{
@@ -60,7 +61,7 @@ void *serviceThread(void *arg);
 void shmWrite(struct Request *request);
 void fileWrite(struct Request *request);
 void fileReader();
-
+void verifyNewMessage(int *apt_hilo_mc);
 
 
 

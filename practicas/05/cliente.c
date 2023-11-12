@@ -9,7 +9,7 @@ int main(){
   int semaforo_request;
   llave_servidor = ftok("archivo",CLAVE_SERVIDOR_SEM);
   semaforo_request = Crea_semaforo(llave_servidor,1);
-  printf("\nServicios listos\n");
+  printf("\nConexion establecida\n");
   /**/
 
   /* pide memoria compartida para almacenar  */
@@ -29,13 +29,13 @@ int main(){
 
   //le decimos al servidor que hay un una request
   down(semaforo_request);
-  printf("\nEl valor en mc antes: %d\n",*apt_request);
+  //printf("\nEl valor en mc antes: %d\n",*apt_request);
   *apt_request = getpid();
-  printf("\nEl PID es: %d\n",getpid());
-  printf("\nEl valor en mc despues: %d\n",*apt_request);
+  //printf("\nEl PID es: %d\n",getpid());
+  //printf("\nEl valor en mc despues: %d\n",*apt_request);
   up(semaforo_request);
 
-  printf("\nConectado\n");
+  printf("\nListo para la comunicacion\n");
 
   char frase[200];
 
@@ -45,8 +45,8 @@ int main(){
   //Pedimos memoria compartida
   getMemoryShared(request.ID_client,&request);
   request.apt_shm->message[0] = '\0';
-  printf("\nEl ID_SERVER es %d\n",request.apt_shm->ID_server);
-  printf("\nEl ID_HILO es %d\n",request.apt_shm->ID_thread);
+  //printf("\nEl ID_SERVER es %d\n",request.apt_shm->ID_server);
+  //printf("\nEl ID_HILO es %d\n",request.apt_shm->ID_thread);
 
   while(1){
     if(kill(request.apt_shm->ID_server,0)== -1){
