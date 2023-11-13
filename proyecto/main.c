@@ -2,15 +2,27 @@
 #include <stdlib.h>
 #include <ncurses.h>
 
-#include "Controller.h"
 #include "Model.h"
 #include "View.h"
+#include "Controller.h"
 
 
 
 int main() {
   struct Usuario user;
-    
+  struct Usuario *apt_user = &user;
+  new_Ini_User(apt_user);
+  while(user.logged==0){
+  Auth(apt_user);
+  };
+  while(user.logged ==1){
+    MainMenu(apt_user);
+  };
+  printf("***Se inicia sesion***");
+
+
+
+  /*struct Usuario user;
   struct Query consulta;
   struct QueryKeyValue kv;
   struct QueryKeyValue* apt_kv = &kv;
@@ -32,6 +44,6 @@ int main() {
   };
   newQuery(apt_consulta);
   //printf("%s",apt_consulta->fileName);
-    
+    */
   return 0;
 };

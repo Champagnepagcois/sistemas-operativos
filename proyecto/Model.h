@@ -1,11 +1,15 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+#include "Controller.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 /*************Constantes****************/
+#define USER_TYPE_ADMIN  777
+#define USER_TYPE_EMPLOYEE 644
+
 #define INSERT         300
 #define SELECT         301
 #define UPDATE         302
@@ -105,13 +109,14 @@ struct QueryKeyValue {
 struct Query {
   int typeQuery;
   int table;
-  struct QueryKeyValue* keyValue;
-  struct Condicion* condition;
+  struct QueryKeyValue *keyValue;
+  struct Condicion *condition;
   char fileName [15];
   char chmod [3];
-  FILE* file;
+  FILE *file;
 };
-
+/************Operaciones Query *****************/
+void new_Ini_User(struct Usuario *);
 /************Operaciones Query *****************/
 
 void signin(char,char);

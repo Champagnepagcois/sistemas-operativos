@@ -1,6 +1,19 @@
 #include "Model.h"
 
 
+
+
+void new_Ini_User(struct Usuario *user){
+  user->ID_usuario = 0;
+  user->logged = 0;
+  user->nombre[0] = '\0';
+  user->password[0]= '\0';
+  user->siguiente = NULL;
+  user->typeUser = 0;
+  user->usuario[0] = '\0';
+  return;
+};
+
 struct Nodo* crearNodo(void* dataTabla){
   struct Nodo* nuevoNodo = (struct Nodo*)malloc(sizeof(struct Nodo));
   nuevoNodo->dataTabla= dataTabla;

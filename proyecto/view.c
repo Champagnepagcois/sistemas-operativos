@@ -67,6 +67,11 @@ char *choices[] = {
   (char *)NULL,
 };
 
+int choices_enabled[ARRAY_SIZE(choices)] = {1}; // Inicializado a todos habilitados
+
+void toggle_item(int index) {
+    choices_enabled[index] = !choices_enabled[index];
+};
 void ShowMainMenu(struct Usuario *user){
   ITEM **my_items;
   int c;
@@ -116,8 +121,10 @@ void ShowMainMenu(struct Usuario *user){
   wrefresh(my_menu_win);
 
   attron(COLOR_PAIR(2));
-  mvprintw(LINES - 2, 0, "Use PageUp y PageDown para desplazar una pagina de elementos abajo o arriba");
-  mvprintw(LINES - 1, 0, "Las flechas para navegar (F1 Para Salir)");
+  mvprintw(LINES -3,0, "Use las fechas arriba y abajo para desplazarse por el menu");
+  mvprintw(LINES -2,0, "Use Enter para seleccionar una opcion");
+  //mvprintw(LINES - 2, 0, "Use PageUp y PageDown para desplazar una pagina de elementos abajo o arriba");
+  //mvprintw(LINES - 1, 0, "Las flechas para navegar (F1 Para Salir)");
   attroff(COLOR_PAIR(2));
   refresh();
 
@@ -134,6 +141,36 @@ void ShowMainMenu(struct Usuario *user){
       break;
     case KEY_PPAGE:
       menu_driver(my_menu, REQ_SCR_UPAGE);
+      break;
+    case 10:
+      ITEM *cur_item = current_item(my_menu);
+      int cur_index = item_index(cur_item);
+      if (choices_enabled[cur_index]) {
+        // If the choice is enabled, toggle its state and process the action
+        toggle_item(cur_index);
+
+        // Lógica específica para cada opción
+        switch (cur_index) {
+          case 0:
+            mvprintw(LINES -5,2, "Seleccionaste Agregar");
+            break;
+          case 1:
+            mvprintw(LINES -5,2, "Seleccionaste ver elementos");
+            break;
+          case 2:
+            mvprintw(LINES -5,2, "Seleccionaste cerrar sesion");
+            sleep(3);
+            exit(-1);
+            break;
+          // Agrega más casos según sea necesario para otras opciones
+          // ...
+          case 10: // Salir
+            // Lógica para salir
+            endwin(); // Cierra curses
+            exit(EXIT_SUCCESS);
+            break;
+        }
+      }
       break;
     };
     wrefresh(my_menu_win);
