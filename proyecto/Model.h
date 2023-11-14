@@ -46,6 +46,7 @@ struct Usuario {
   int typeUser; // lon 2
   int logged;   // 1on 1
   struct Usuario* siguiente;
+  struct Usuario* apt_mc_usuario;
 };
 
 struct Categoria{
