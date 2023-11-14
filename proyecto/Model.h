@@ -23,10 +23,21 @@
 #define PROVEEDOR      105
 #define ADQUISICION    106
 
-#define QUERYSUCCESS 200;
-#define ERRORFILEOPEN 404;
+#define QUERYSUCCESS   200
+#define ERRORFILEOPEN  404
+
+#define VENTANA_MAIN  1000
+#define VENTANA_VENTA 1001
+#define VENTANA_EDITAR  1002
 
 /**************Modelos******************/
+
+//Navegacion
+struct Navegacion{
+  int path_ubicacion;
+  
+};
+
 struct Usuario {
   int ID_usuario; //lon 6
   char nombre [15]; 

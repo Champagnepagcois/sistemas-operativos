@@ -7,6 +7,9 @@ void MainMenu(struct Usuario *user){
   //get all the data
   ShowMainMenu(user);
   return;
-}
+};
+
+void NuevaVenta(){
+};
 void getUser();
 

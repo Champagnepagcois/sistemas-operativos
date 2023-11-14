@@ -61,8 +61,9 @@ void showAuthPage(struct Usuario *user){
 
 
 char *choices[] = {
-  "Agregar",
-  "Ver elementos",
+  "Nueva venta",
+  "Editar productos",
+  "Ver ventas",
   "Cerrar sesion",
   (char *)NULL,
 };
@@ -153,13 +154,19 @@ void ShowMainMenu(struct Usuario *user){
         switch (cur_index) {
           case 0:
             mvprintw(LINES -5,2, "Seleccionaste Agregar");
+            wrefresh(my_menu_win);
             break;
           case 1:
             mvprintw(LINES -5,2, "Seleccionaste ver elementos");
+            wrefresh(my_menu_win);
+
+            exit(-1);
             break;
           case 2:
             mvprintw(LINES -5,2, "Seleccionaste cerrar sesion");
-            sleep(3);
+            wrefresh(my_menu_win);
+
+            //sleep(3);
             exit(-1);
             break;
           // Agrega más casos según sea necesario para otras opciones
