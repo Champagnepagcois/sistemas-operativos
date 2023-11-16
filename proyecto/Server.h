@@ -11,9 +11,12 @@
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <sys/sem.h>
+#include <pthread.h>
 
 /************ Constantes *************/
 #define PERMISOS 0644
+#define CLAVE_SER_H_LOGIN_MC 'z'
+#define CLAVE_SER_H_LOGIN_MC_REQ 'z'
 
 
 /************ Estructuras ************/
@@ -99,7 +102,7 @@ void up(int semid);
 
 
 //Endpoints Request
-void *H_login(struct Usuario *usuario);
+void *H_login();
 void *H_getItem();
 void *H_addItem();
 void *H_updateItem();
@@ -110,7 +113,8 @@ void *H_readFile();
 
 //Memoria compartida
 
-void getShmLogin(struct Usuario *usuario,int clave);
+void getShmLogin(struct Usuario *usuario,char clave);
+void getShmRequest(int *count, char clave);
 
 //Errores
 void ErrorMessage(char *message);

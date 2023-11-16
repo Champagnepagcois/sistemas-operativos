@@ -1,37 +1,52 @@
 #include "Server.h"
 
 int main(){
-  initAllSemaphores();//?
+  ///initAllSemaphores();//?
+  //Creamos hilos
+  pthread_t id_thread;
+  int threadCorrect;
+  pthread_attr_t atributos;
+  pthread_attr_init(&atributos);
+  pthread_attr_setdetachstate(&atributos,PTHREAD_CREATE_DETACHED);
+  threadCorrect = pthread_create(&id_thread,&atributos,H_login,NULL/*(void *) 0*/);
+  if(threadCorrect !=0){
+    perror("\nError al crear hilo\n");
+    exit(-1);
+  };
+  while (1)
+  {
+    /* code */
+  }
   
   return 0;
 };
 
-void initAllSemaphores(){ //?
-  key_t llave_servidor;
-  int semaforo_request;
-  llave_servidor = ftok("archivo",'a');
-  semaforo_request = Crea_semaforo(llave_servidor,1);
+  
+void initSemaphore(key_t *llave,int *semaforo,int *clave){
+  *llave = ftok("archivo",*clave);
+  *semaforo = Crea_semaforo(*llave,1);
 };
 
-  
-void initSemaphore(key_t *llave_serv_IO,int *semaforoIO,int *clave){
-
-}
-
-void *H_login(struct Usuario *usuario){
+void *H_login(){
   printf("Activando servicio de login\n");
-  key_t llave_serv_IO [7];
-  int semaforo_IO [7];
+  struct Usuario usuario;
+  struct Usuario *apt_usuario_mc= &usuario;
+  key_t llave_serv_H_IO,llave_serv_H_Req;
+  int semaforo__h__login_IO, semaforo_h_login_Req;
   int clave = 12;
-  int *apt_clave = &clave;
-  initSemaphore(llave_serv_IO,semaforo_IO,clave);
-  getShmLogin(usuario,'q');
-  printf("Servicios activados, servicio listo.....\n");
+  int count =0;
+  int *apt_cout =&count;
+  initSemaphore(&llave_serv_H_IO,&semaforo__h__login_IO,&clave);
+  initSemaphore(&llave_serv_H_Req,&semaforo_h_login_Req,&clave);
+  getShmLogin(apt_usuario_mc,CLAVE_SER_H_LOGIN_MC);
+  getShmRequest(apt_cout,CLAVE_SER_H_LOGIN_MC_REQ);
+  printf("Servicios activados, login escuchando...\n");
   while(1){
-    down(semaforo_IO);
-    //verificar si hay alguna peticion
-    //Atender peticion
-    up(semaforo_IO);
+    down(semaforo_h_login_Req);
+    //Hay peticion nueva?
+    //->Atiende peticion.
+    //Libera semaforo MCUsuario
+    up(semaforo_h_login_Req);
   };
 };
 void *H_getItem(){};
@@ -48,12 +63,13 @@ void openFile(struct FileManager *fileManager){
   fileManager->file = fopen(fileManager->fileName,"a+");
   if(fileManager->file == NULL) ErrorMessage("No se pudo abrir el archivo");
 };
+
 void closeFile(struct FileManager *fileManager){
   fclose(fileManager->file);
 };
 
 
-void getShmLogin(struct Usuario *usuario,int clave){
+void getShmLogin(struct Usuario *usuario,char clave){
   int memoria;
   int *dato_memoria;
   key_t llave_memoria;
@@ -62,6 +78,15 @@ void getShmLogin(struct Usuario *usuario,int clave){
   if (memoria == -1) ErrorMessage("Error al pedir region en la memoria compartida de login");
   usuario->apt_mc_usuario = (struct Usuario *)shmat(memoria,0,0);
   if(usuario->apt_mc_usuario ==(struct Usuario *)(-1))  ErrorMessage("\nError al signar la memoria compartida al apuntador de login");
+  return;
+};
+
+void getShmRequest(int *count, char clave){
+  key_t llave_memoria = ftok("archivo", clave);
+  int memoria  = shmget(llave_memoria,sizeof(int), IPC_CREAT | PERMISOS);
+  if(memoria ==-1) ErrorMessage("Error al pedir region en la memoria compartida de X/Request");
+  count = (int *)shmat(memoria,0,0);
+  if(count == (int *)(-1)) ErrorMessage("Error al signar la memoria compartida al apuntador de X/Request");
 };
 
 void ErrorMessage(char *message){
