@@ -21,12 +21,32 @@ int main(){
   return 0;
 };
 
-  
+
+/******************Codigo del semaforo*************************/
+int Crea_semaforo(key_t llave,int valor_inicial){
+  int semid=semget(llave,1,IPC_CREAT|PERMISOS);
+  if(semid==-1){
+    return -1;
+  };
+  semctl(semid,0,SETVAL,valor_inicial);
+  return semid;
+};
+void down(int semid){
+  struct sembuf op_p[]={0,-1,0};
+  semop(semid,op_p,1);
+};
+void up(int semid){
+  struct sembuf op_v[]={0,+1,0};
+  semop(semid,op_v,1);
+};
 void initSemaphore(key_t *llave,int *semaforo,int *clave){
   *llave = ftok("archivo",*clave);
   *semaforo = Crea_semaforo(*llave,1);
 };
+/****************************************************************/
 
+
+/******************* Endpoints Request ***********************/
 void *H_login(){
   printf("Activando servicio de login\n");
   struct Usuario usuario;
@@ -55,20 +75,15 @@ void *H_updateItem(){};
 void *H_deleteItem(){};
 void *H_writeFile(){};
 void *H_readFile(){};
-
-
-
-
-void openFile(struct FileManager *fileManager){
-  fileManager->file = fopen(fileManager->fileName,"a+");
-  if(fileManager->file == NULL) ErrorMessage("No se pudo abrir el archivo");
+/****************************************************************/
+/******************** Memoria Compartida ************************/
+void getShmRequest(int *count, char clave){
+  key_t llave_memoria = ftok("archivo", clave);
+  int memoria  = shmget(llave_memoria,sizeof(int), IPC_CREAT | PERMISOS);
+  if(memoria ==-1) ErrorMessage("Error al pedir region en la memoria compartida de X/Request");
+  count = (int *)shmat(memoria,0,0);
+  if(count == (int *)(-1)) ErrorMessage("Error al signar la memoria compartida al apuntador de X/Request");
 };
-
-void closeFile(struct FileManager *fileManager){
-  fclose(fileManager->file);
-};
-
-
 void getShmLogin(struct Usuario *usuario,char clave){
   int memoria;
   int *dato_memoria;
@@ -80,38 +95,21 @@ void getShmLogin(struct Usuario *usuario,char clave){
   if(usuario->apt_mc_usuario ==(struct Usuario *)(-1))  ErrorMessage("\nError al signar la memoria compartida al apuntador de login");
   return;
 };
-
-void getShmRequest(int *count, char clave){
-  key_t llave_memoria = ftok("archivo", clave);
-  int memoria  = shmget(llave_memoria,sizeof(int), IPC_CREAT | PERMISOS);
-  if(memoria ==-1) ErrorMessage("Error al pedir region en la memoria compartida de X/Request");
-  count = (int *)shmat(memoria,0,0);
-  if(count == (int *)(-1)) ErrorMessage("Error al signar la memoria compartida al apuntador de X/Request");
+/****************************************************************/
+/************************* Archivos *****************************/
+void openFile(struct FileManager *fileManager){
+  fileManager->file = fopen(fileManager->fileName,"a+");
+  if(fileManager->file == NULL) ErrorMessage("No se pudo abrir el archivo");
 };
 
+void closeFile(struct FileManager *fileManager){
+  fclose(fileManager->file);
+};
+/****************************************************************/
+
+/************************* Errores *****************************/
 void ErrorMessage(char *message){
   perror(message);
   exit(EXIT_FAILURE);
-};
-
-
-
-
-/******************Codigo del semaforo*************************/
-int Crea_semaforo(key_t llave,int valor_inicial){
-  int semid=semget(llave,1,IPC_CREAT|PERMISOS);
-  if(semid==-1){
-    return -1;
-  };
-  semctl(semid,0,SETVAL,valor_inicial);
-  return semid;
-};
-void down(int semid){
-  struct sembuf op_p[]={0,-1,0};
-  semop(semid,op_p,1);
-};
-void up(int semid){
-  struct sembuf op_v[]={0,+1,0};
-  semop(semid,op_v,1);
 };
 /****************************************************************/
