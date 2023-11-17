@@ -12,20 +12,28 @@
 #include <sys/wait.h>
 #include <sys/sem.h>
 #include <pthread.h>
+#include <string.h>
 
 /************ Constantes *************/
 #define PERMISOS 0644
+
+#define USUARIO        100 
+#define CATEGORIA      101
+#define PRODUCTO       102
+#define VENTA          103
+#define DETALLEVENTA   104
+#define PROVEEDOR      105
+#define ADQUISICION    106
+
 #define CLAVE_SER_H_LOGIN_MC 'z'
 #define CLAVE_SER_H_LOGIN_MC_REQ 'z'
 
 
 /************ Estructuras ************/
-struct DatosMC{
-  int count;
-  int DaataType;
-  void *apt;
-};
+//Queries
 
+
+//Tablas
 struct Usuario {
   int ID_usuario; //lon 6
   char nombre [15]; 
@@ -86,6 +94,7 @@ struct Adquisicion{
   int cantidad;
   struct Adquisicion* siguiente;
 };
+
 //Programa
 struct FileManager{
   char *fileName;
@@ -99,28 +108,39 @@ struct FileManager{
 int Crea_semaforo(key_t llave,int valor_inicial);
 void down(int semid);
 void up(int semid);
+void initSemaphore(key_t *llave,int *semaforo,int *clave);
+int getValueSemaphore(int *id);
 
 
 //Endpoints Request
 void *H_login();
 void *H_getItem();
-void *H_addItem();
+void H_addItem(void *data,int dataType);
 void *H_updateItem();
 void *H_deleteItem();
 void *H_writeFile();
 void *H_readFile();
 
+//controller Endpoints Request
+void  dispatch_H_login(struct Usuario *usuario);
+void searchInDoc(struct FileManager *file,struct Usuario *usuario);
+
 
 //Memoria compartida
-
 void getShmLogin(struct Usuario *usuario,char clave);
 void getShmRequest(int *count, char clave);
-
-//Errores
-void ErrorMessage(char *message);
 
 //archivos
 void openFile(struct FileManager *fileManager);
 void closeFile(struct FileManager *fileManager);
+void AddData();
+void GetData();
+void UpdateData();
+void DeleteData();
+
+//Helpers
+void structToString(char* apt_salida,void *data,int dataType);
+//Errores
+void ErrorMessage(char *message);
 
 #endif
