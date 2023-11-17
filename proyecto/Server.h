@@ -111,7 +111,6 @@ void up(int semid);
 void initSemaphore(key_t *llave,int *semaforo,int *clave);
 int getValueSemaphore(int *id);
 
-
 //Endpoints Request
 void *H_login();
 void *H_getItem();
@@ -124,7 +123,6 @@ void *H_readFile();
 //controller Endpoints Request
 void  dispatch_H_login(struct Usuario *usuario);
 void searchInDoc(struct FileManager *file,struct Usuario *usuario);
-
 
 //Memoria compartida
 void getShmLogin(struct Usuario *usuario,char clave);
