@@ -1,8 +1,5 @@
 #include "Model.h"
 
-
-
-
 void new_Ini_User(struct Usuario *user){
   user->ID_usuario = 0;
   user->logged = 0;
@@ -39,7 +36,6 @@ void insertarNodoZ(struct Nodo** InicioNodo, void* dataTabla){
       actual = actual->siguiente;
     };
     actual->siguiente =nuevoNodo;
-    
   };
 };
 
