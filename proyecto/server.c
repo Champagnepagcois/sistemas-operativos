@@ -76,24 +76,80 @@ void *H_login(){
 
 void *H_getItem(){};
 void H_addItem(void *data,int dataType){
+  struct FileManager fileManager;
+  char salida [200];
+  fileManager.fileName[0]='\0';
   switch (dataType){
   case USUARIO:
-  struct Usuario *usuario = (struct Usuario*)data;
-  struct FileManager fileManager;
-  fileManager.fileName[0]='\0';
-  strcat(fileManager.fileName,"Usuario.txt");
-  char salidaUsuario [200];
-    structToString(salidaUsuario,usuario,USUARIO);
+    struct Usuario *usuario = (struct Usuario*)data;
+    strcat(fileManager.fileName,"usuario.txt");
+    structToString(salida,usuario,USUARIO);
+    //Semaforo;
     openFile(&fileManager);
-    fprintf(fileManager.file,"%s",salidaUsuario);
+    fprintf(fileManager.file,"%s",salida);
     closeFile(&fileManager);
+    //Semaforo;
+    break;
+  case CATEGORIA:
+    struct Categoria *categoria = (struct Categoria*)data;
+    strcat(fileManager.fileName,"categoria.txt");
+    structToString(salida,categoria,CATEGORIA);
+    //semaforo
+    openFile(&fileManager);
+    fprintf(fileManager.file,"%s",salida);
+    closeFile(&fileManager);
+    //semaforo
     break;
   case PRODUCTO:
     struct Producto *producto = (struct Producto*)data;
-    char salidaProducto [200];
-    structToString(salidaProducto,producto,PRODUCTO);
+    strcat(fileManager.fileName,"producto.txt");
+    structToString(salida,producto,PRODUCTO);
+    //semaforo
+    openFile(&fileManager);
+    fprintf(fileManager.file,"%s",salida);
+    closeFile(&fileManager);
+    //semaforo
     break;
-  
+  case VENTA:
+    struct Venta *venta = (struct Venta*)data;
+    strcat(fileManager.fileName,"venta.txt");
+    structToString(salida,venta,VENTA);
+    //semaforo
+    openFile(&fileManager);
+    fprintf(fileManager.file,"%s",salida);
+    closeFile(&fileManager);
+    //semaforo
+    break;
+  case DETALLEVENTA:
+    struct DetalleVenta *detalleVenta = (struct DetalleVenta*)data;
+    strcat(fileManager.fileName,"detalleVenta.txt");
+    structToString(salida,detalleVenta,DETALLEVENTA);
+    //semaforo
+    openFile(&fileManager);
+    fprintf(fileManager.file,"%s",salida);
+    closeFile(&fileManager);
+    //semaforo
+    break; 
+  case PROVEEDOR:
+    struct Proveedor *proveedor = (struct Proveedor*)data;
+    strcat(fileManager.fileName,"proveedor.txt");
+    structToString(salida,proveedor,PROVEEDOR);
+    //semaforo
+    openFile(&fileManager);
+    fprintf(fileManager.file,"%s",salida);
+    closeFile(&fileManager);
+    //semaforo
+    break; 
+  case ADQUISICION:
+    struct Adquisicion *adquisicion = (struct Adquisicion*)data;
+    strcat(fileManager.fileName,"adquisicion.txt");
+    structToString(salida,adquisicion,ADQUISICION);
+    //semaforo
+    openFile(&fileManager);
+    fprintf(fileManager.file,"%s",salida);
+    closeFile(&fileManager);
+    //semaforo
+    break;  
   default:
     break;
   };
