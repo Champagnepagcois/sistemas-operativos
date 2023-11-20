@@ -74,7 +74,27 @@ void *H_login(){
   };*/
 };
 
-void *H_getItem(){};
+void *H_getItem(int dataType){
+  //Creamos hilos
+  pthread_t id_thread;
+  int threadCorrect;
+  pthread_attr_t atributos;
+  pthread_attr_init(&atributos);
+  pthread_attr_setdetachstate(&atributos,PTHREAD_CREATE_DETACHED);
+  threadCorrect = pthread_create(&id_thread,&atributos,H_login,NULL/*(void *) 0*/);
+  if(threadCorrect !=0) ErrorMessage("\nError al crear hilo\n");
+  switch (dataType){
+  case USUARIO:
+    break;
+  
+  default:
+    break;
+  }
+};
+void *Dispatch_H_getItem(){
+
+};
+
 void H_addItem(void *data,int dataType){
   struct FileManager fileManager;
   char salida [200];
@@ -165,13 +185,13 @@ void  dispatch_H_login(struct Usuario *usuario){
   char *username = usuario->apt_mc_usuario->usuario;
   char *password = usuario->apt_mc_usuario->password;
   openFile(&fileManager);
-  searchInDoc(&fileManager,usuario);
+  searchInDoc(&fileManager,usuario,usuario,usuario);
   closeFile(&fileManager);
 
   return;
 };
 //Busca en el archivo y rellena la estructura en caso de que si exista alguna coincidencia
-void searchInDoc(struct FileManager *file,struct Usuario *usuario){
+void searchInDoc(struct FileManager *file,void *data, void *field, void *value){
   //Buscar dato en en 
   return;
 };
