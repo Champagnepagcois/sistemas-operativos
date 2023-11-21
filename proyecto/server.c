@@ -91,9 +91,7 @@ void *H_getItem(int dataType){
     break;
   }
 };
-void *Dispatch_H_getItem(){
-
-};
+void *Dispatch_H_getItem(){};
 
 void H_addItem(void *data,int dataType){
   struct FileManager fileManager;
@@ -180,6 +178,24 @@ void *H_writeFile(){};
 void *H_readFile(){};
 /****************************************************************/
 /*************** Controller Endpoints Request *******************/
+void *dispatch_H_addItem(pid_t ID_client, int dataType){
+  switch (dataType){
+  case USUARIO:
+    //Pedimos la memoria compartida para usuario
+    struct Usuario usuario;
+    key_t llave_H_addItem_usuario = ftok("archivo",ID_client);
+    int memoria = shmget(llave_H_addItem_usuario, sizeof(struct Usuario), IPC_CREAT | PERMISOS);
+    if(memoria == -1) ErrorMessage("Error al pedir region de memoria compartida en usuario");
+    usuario.apt_mc_usuario = (struct Usuario*) shmat(memoria,0,0);
+    break;
+  
+  default:
+    break;
+  };
+  //iniciar semaforos del cliente para saber si ya terminode escribir y avisarle que ya terminaste de escribir
+  //semaforo para leer o escribir en un archivo especifico
+};
+
 void  dispatch_H_login(struct Usuario *usuario){
   struct FileManager fileManager;
   char *username = usuario->apt_mc_usuario->usuario;
