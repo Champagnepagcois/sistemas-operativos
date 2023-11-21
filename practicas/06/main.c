@@ -2,12 +2,13 @@
 
 int main(){
   struct Usuario usuario;
+  usuario.logged=0;
   while (1){
     showAuthPage(&usuario);
     if(usuario.logged== 0){
-      showRegisterPage(&usuario);
+      //showRegisterPage(&usuario);
+      signup(&usuario);
     };
-    signup(&usuario);
   };
   return 0;
 };

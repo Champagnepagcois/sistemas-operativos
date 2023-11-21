@@ -15,8 +15,8 @@
 
 /*************** Estructuras ******************/
 struct Usuario {
-  char username [20];
-  char password [20];
+  char username [21];
+  char password [21];
   int logged;
 };
 
@@ -25,6 +25,7 @@ struct Usuario {
 void showAuthPage(struct Usuario *user);
 void showRegisterPage(struct Usuario *user);
 //herlpers
+void cleanText(char *cadena);
 void signin(struct Usuario *usuario);
 void setUser(struct Usuario *usuario);
 void getUser(struct Usuario *usuario,char *passwordFile);
