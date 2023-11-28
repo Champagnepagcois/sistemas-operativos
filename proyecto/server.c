@@ -1,27 +1,22 @@
 #include "Server.h"
 
+
 int main(){
-  const char *comando = "ipcrm -a";
-  int resultado  = system(comando);
-  if(resultado== -1) ErrorMessage("No se pudo limpiar la MC y semaforos");
-  //Creamos hilos
-  pthread_t id_thread1,id_thread2;
-  int threadCorrect;
-  pthread_attr_t atributos;
-  pthread_attr_init(&atributos);
-  pthread_attr_setdetachstate(&atributos,PTHREAD_CREATE_DETACHED);
-  threadCorrect = pthread_create(&id_thread1,&atributos,H_login,NULL/*(void *) 0*/); //se crea hilo
-  if(threadCorrect !=0) ErrorMessage("\nError al crear hilo\n");
-  //otro hilo
-  threadCorrect = pthread_create(&id_thread2,&atributos,H_addItem,NULL/*(void *) 0*/); //se crea hilo
-  if(threadCorrect !=0) ErrorMessage("\nError al crear hilo\n");
+  if(system("ipcrm -a")== -1) ErrorMessage("No se pudo limpiar la MC y semaforos");
+  /************** Creamos hilos Endpoints **************/
+  pthread_t thread_add,thread_get, thread_update, thread_delete;
+
+  //createThreadPublic(&thread_get,H_getItem,NULL);
+  createThreadPublic(&thread_add,H_addItem,NULL);
+  //createThreadPublic(&thread_update,H_updateItem,NULL);
+  //createThreadPublic(&thread_delete,H_deleteItem,NULL);
+
   while (1){
     /* code */
   }
   
   return 0;
 };
-
 
 /******************Codigo del semaforo*************************/
 int Crea_semaforo(key_t llave,int valor_inicial){
@@ -51,31 +46,6 @@ int getValueSemaphore(int *id){
 
 
 /******************* Endpoints Request ***********************/
-void *H_login(){
-  printf("Activando servicio de login\n");
-  struct Usuario usuario;
-  key_t llave_serv_H_login,llave_serv_H_login_Req;
-  int semaforo__h__login, semaforo_h_login_Req;
-  int clave = 12; //Cambiar clave
-  int count =0;
-  //initSemaphore(&llave_serv_H_login,&semaforo__h__login,&clave);
-  //initSemaphore(&llave_serv_H_login_Req,&semaforo_h_login_Req,&clave);
-  getShmLogin(&usuario,CLAVE_SER_H_LOGIN_MC);
-  getShmRequest(&count,CLAVE_SER_H_LOGIN_MC_REQ);
-  printf("Servicios activados, servicio login escuchando...\n");
-  strcat(usuario.nombre,"\0");
-  strcat(usuario.password,"\0");
-  strcat(usuario.nombre,"Marlon");
-  strcat(usuario.password,"1234");
-  H_addItem(&usuario,USUARIO); // de prueba
-  //Lo que realmente va a ejecutar
-  /*while(1){
-    if(getValueSemaphore(&semaforo_h_login_Req)==1){
-      dispatch_H_login(&usuario);
-      down(semaforo_h_login_Req);
-    };
-  };*/
-};
 
 void *H_getItem(int dataType){
   //Creamos hilos
@@ -84,7 +54,7 @@ void *H_getItem(int dataType){
   pthread_attr_t atributos;
   pthread_attr_init(&atributos);
   pthread_attr_setdetachstate(&atributos,PTHREAD_CREATE_DETACHED);
-  threadCorrect = pthread_create(&id_thread,&atributos,H_login,NULL/*(void *) 0*/);
+  //threadCorrect = pthread_create(&id_thread,&atributos,H_login,NULL/*(void *) 0*/);
   if(threadCorrect !=0) ErrorMessage("\nError al crear hilo\n");
   switch (dataType){
   case USUARIO:
@@ -96,31 +66,98 @@ void *H_getItem(int dataType){
 };
 void *Dispatch_H_getItem(){};
 
-void *H_addItem(void *data,int dataType){
-
-  /**
-   * No recibe argumentos
-   * crea hilos que van a atender
-   * pide memoria compartida donde observa si llego algun request
-   * Crea el semaforo para avisar si esta ocupando un hiloDispatcher
-   * este hilo esta pendiente de algun request de tipo addItem
-   * si llega lgun request cre al hilo para atenderlo 
-  */
+void *H_addItem(){
+  struct Request request,requestCopy;
+  char clave_addItem = CLAVE_SER_H_ADDITEM;
+  //pide MC
+  getShmPublic(&request,clave_addItem,TYPEDATA_REQUEST);
+  //crea semaforo
+  int semaforo_create_dispatcher,semaforo_request, semaforo_done;
+  createSemPublic(&semaforo_create_dispatcher,CLAVE_SER_H_ADDITEM,0); //?
+  createSemPublic(&semaforo_request,CLAVE_SER_H_ADDITEM,0); //Nueva request
+  createSemPublic(&semaforo_done,23,0);
+  //definir variable de hilo dispatcher
+  pthread_t hilo_dispatcher;
+  printf("Servicio AddItem, escuchando....\n");
+  
+  while (1){
+    down(semaforo_request);
+    requestCopy.dataType =request.apt_mc_request->dataType;
+    requestCopy.ID_usuario = request.apt_mc_request->ID_usuario;
+    //printf("dataType:%d\n",requestCopy.dataType);
+    //printf("ID_usuario:%d\n\n",requestCopy.ID_usuario);
+    createThreadPublic(&hilo_dispatcher,(void *)Dispatch_H_addItem , (void*)&requestCopy);
+    //printf("Termino de despachar el hilo\n");
+    up(semaforo_done);
+  };
+};
+void *H_updateItem(){};
+void *H_deleteItem(){};
+void *H_writeFile(){};
+void *H_readFile(){};
+/****************************************************************/
+/*************** Controller Endpoints Request *******************/
+/**
+ * Recibe parametro de tipo Request
+ * Segun la tabla es como atiende
+ * pide la memoria compartida
+ * Crea semaforos
+ * -Semaforo para datosCompartidos  semaforo_newData
+ * -semaforo para saber si ya escribio o leyo semaforo_done
+ * -semaforo region critica del archivo semaforo_rc_file
+ * mienttras haya datos()
+ * -copia datos
+ * abre archivo
+ * los escribe en archivo
+ * cierra arcchivo
+ * avisa que acabo
+ * repite
+ * 
+*/
+void *Dispatch_H_addItem(struct Request *request){
+  printf("Nueva conexion con cliente:%d\n", request->ID_usuario);
+  //Se copian los datos de la request
+  int dataType = request->dataType;
+  pid_t ID_cliente = request->ID_usuario;
   struct FileManager fileManager;
   char salida [200];
-  fileManager.fileName[0]='\0';
   switch (dataType){
   case USUARIO:
-    struct Usuario *usuario = (struct Usuario*)data;
-    strcat(fileManager.fileName,"usuario.txt");
-    structToString(salida,usuario,USUARIO);
+    char fileName []= {"PRUEBA.txt"};
+    fileManager.fileName = fileName;
+    //pide MC
+    struct Usuario usuario;
+    getShmPublic(&usuario,ID_cliente,USUARIO);
+    //Crea semaforo
+    int semaforo_newData, semaforo_RW_file, semaforo_done;
+    createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_USUARIO,1);  //semaforo para los archivos
+    createSemPublic(&semaforo_newData,0,0); //Semaforo pasar datos
+    createSemPublic(&semaforo_done,2,0);  //semaforo informar ya se copio
+    //itera por cada dato que pase el cliente
+    int count = usuario.apt_mc_usuario->count;
+    while (count>0){
+      down(semaforo_newData);
+      //printf("Se empieza a atender\n");
+      structToString(salida,usuario.apt_mc_usuario,USUARIO);
+      down(semaforo_RW_file);//para abrir y escribir en archivo
+      openFile(&fileManager);
+      fprintf(fileManager.file,"%s",salida);
+      closeFile(&fileManager);
+      up(semaforo_RW_file);//deja que otro abra el archivo
+      printf("new Request/AddItem\n");
+      count-=1; //servidor mantiene un registro propia de cuantos inserts lleva
+      up(semaforo_done);
+    };
+    //struct Usuario *usuario = (struct Usuario*)data;
+    //strcat(fileManager.fileName,"usuario.txt");
+    //structToString(salida,usuario,USUARIO);
     //Semaforo;
-    openFile(&fileManager);
-    fprintf(fileManager.file,"%s",salida);
-    closeFile(&fileManager);
+    //openFile(&fileManager);
+    //fprintf(fileManager.file,"%s",salida);
+    //closeFile(&fileManager);
     //Semaforo;
     break;
-  case CATEGORIA:
+  /*case CATEGORIA:
     struct Categoria *categoria = (struct Categoria*)data;
     strcat(fileManager.fileName,"categoria.txt");
     structToString(salida,categoria,CATEGORIA);
@@ -180,51 +217,9 @@ void *H_addItem(void *data,int dataType){
     closeFile(&fileManager);
     //semaforo
     break;  
-  default:
+  */default:
     break;
   };
-};
-void *H_updateItem(){};
-void *H_deleteItem(){};
-void *H_writeFile(){};
-void *H_readFile(){};
-/****************************************************************/
-/*************** Controller Endpoints Request *******************/
-void *dispatch_H_addItem(pid_t ID_client, int dataType){
-  int semaforo_mutex,semaforo_LE;
-  switch (dataType){
-  case USUARIO:
-    struct Usuario usuario;
-    //Pedimos la memoria compartida para usuario
-    getShmPublic(&usuario,ID_client,USUARIO);
-    //hacemos semaforo
-    createSemPublic(&semaforo_mutex,ID_client,0);
-    createSemPublic(&semaforo_LE,ID_client,1);
-    //mientras las queries sean mayor de 0
-    while (usuario.apt_mc_usuario->count > 0){
-      if(getValueSemaphore(&semaforo_mutex) == 0){ // Termino de escribir el cliente
-        //semafo_LE down
-        down(semaforo_LE);
-        //Copia datos de la estructura
-        /*********/
-        strcpy(usuario.nombre,usuario.apt_mc_usuario->nombre);
-        strcpy(usuario.password,usuario.apt_mc_usuario->password);
-        usuario.typeUser =usuario.apt_mc_usuario->typeUser;
-        /*********/
-        //semaforo_LE up
-        up(semaforo_LE);
-        //Le hace saber al clienteque ya copiamos los datos
-        up(semaforo_mutex);
-      };      
-    };
-    
-    break;
-  
-  default:
-    break;
-  };
-  //iniciar semaforos del cliente para saber si ya terminode escribir y avisarle que ya terminaste de escribir
-  //semaforo para leer o escribir en un archivo especifico
 };
 
 void  dispatch_H_login(struct Usuario *usuario){
@@ -264,12 +259,19 @@ void getShmPublic(void *data,char clave,int typeData){ //Falta terminar
     categoria->apt_mc_categoria = (struct Categoria*)shmat(memoria,0,0);
     if(categoria->apt_mc_categoria == (struct Categoria*)(-1)) ErrorMessage("\nError al signar la memoria compartida al apuntador de getShmPublic/CATEGORIA");
     break;
+  case TYPEDATA_REQUEST:
+    struct Request *request = (struct Request*)data;
+    memoria = shmget(llave_memoria,sizeof(struct Request), IPC_CREAT | PERMISOS);
+    if(memoria == -1) ErrorMessage("\nError al pedir region en la memoria compartida de getShmPublic/TYPEDATAREQUEST");
+    request->apt_mc_request = (struct Request*)shmat(memoria,0,0);
+    if(request->apt_mc_request == (struct Request*)(-1)) ErrorMessage("\nError al signar la memoria compartida al apuntador de getShmPublic/TYPEDATAREQUEST");
+    break;
   //Falta terminar todos las tablas
     default:
     break;
   };
   return;
-}
+};
 
 void getShmRequest(int *count, char clave){
   key_t llave_memoria = ftok("archivo", clave);
@@ -307,18 +309,23 @@ void structToString(char* apt_salida,void *data,int dataType){
     struct Usuario *usuario = (struct Usuario*)data;
     apt_salida[0]='\0';
     sprintf(apt_salida,"%s\t%s\t%d\n",usuario->nombre,usuario->password,usuario->typeUser);
-    /*strcpy(*apt_salida,usuario->nombre);
-    strcpy(*apt_salida,"\t");
-    strcpy(*apt_salida,usuario->password);//Cambiar por modulo que cifra
-    strcpy(*apt_salida,"\t");
-    sprintf(*apt_salida,"%d",usuario->typeUser);*/
     break;
   default:
     break;
   }
   return;
 };
+//Hilos
 
+void createThreadPublic(pthread_t *ID_thread,void*(*__start_routine)(void *),void *__restrict__ __arg){
+  int threadCorrect;
+  pthread_attr_t atributos;
+  pthread_attr_init(&atributos);
+  pthread_attr_setdetachstate(&atributos,PTHREAD_CREATE_DETACHED);
+  threadCorrect = pthread_create(ID_thread,&atributos,__start_routine, __arg);
+  if(threadCorrect != 0) ErrorMessage("Error en la creación del hilo");
+  return;
+};
 /************************* Errores *****************************/
 void ErrorMessage(char *message){
   perror(message);
