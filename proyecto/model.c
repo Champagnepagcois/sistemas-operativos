@@ -177,3 +177,66 @@ void usuarioTostr(struct Query* consulta, char* output){
   };
   return;
 };
+
+/*************************/
+
+/******************Codigo del semaforo*************************/
+int Crea_semaforo(key_t llave,int valor_inicial){
+  int semid=semget(llave,1,IPC_CREAT|PERMISOS);
+  if(semid==-1){
+    return -1;
+  };
+  semctl(semid,0,SETVAL,valor_inicial);
+  return semid;
+};
+void down(int semid){
+  struct sembuf op_p[]={0,-1,0};
+  semop(semid,op_p,1);
+};
+void up(int semid){
+  struct sembuf op_v[]={0,+1,0};
+  semop(semid,op_v,1);
+};
+void createSemPublic(int *semaforo,int clave, int valor){
+  key_t llave = ftok("archivo",clave);
+  *semaforo = Crea_semaforo(llave,valor);
+};
+int getValueSemaphore(int *id){
+  return semctl(*id,0,GETVAL,0);
+};
+
+
+
+/******************** Memoria Compartida ************************/
+void getShmPublic(void *data,char clave,int typeData){ //Falta terminar
+  key_t llave_memoria = ftok("archivo",clave);
+  int memoria;
+  switch (typeData){
+  case USUARIO:
+    struct Usuario *usuario = (struct Usuario*)data;
+    memoria = shmget(llave_memoria, sizeof(struct Usuario), IPC_CREAT | PERMISOS);
+    if(memoria == -1) ErrorMessage("\nError al pedir region en la memoria compartida de getShmPublic/USUARIO");
+    usuario->apt_mc_usuario = (struct Usuario*)shmat(memoria,0,0);
+    if(usuario->apt_mc_usuario == (struct Usuario*)(-1)) ErrorMessage("\nError al signar la memoria compartida al apuntador de getShmPublic/USUARIO");
+    break;
+  case CATEGORIA:
+    struct Categoria *categoria = (struct Categoria*)data;
+    memoria = shmget(llave_memoria, sizeof(struct Categoria), IPC_CREAT | PERMISOS);
+    if(memoria == -1) ErrorMessage("\nError al pedir region en la memoria compartida de getShmPublic/CATEGORIA");
+    categoria->apt_mc_categoria = (struct Categoria*)shmat(memoria,0,0);
+    if(categoria->apt_mc_categoria == (struct Categoria*)(-1)) ErrorMessage("\nError al signar la memoria compartida al apuntador de getShmPublic/CATEGORIA");
+    break;
+  //Falta terminar todos las tablas
+    default:
+    break;
+  };
+  return;
+};
+
+/************************* Errores *****************************/
+void ErrorMessage(char *message){
+  perror(message);
+  exit(EXIT_FAILURE);
+};
+/****************************************************************/
+

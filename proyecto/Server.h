@@ -17,6 +17,8 @@
 /************ Constantes *************/
 #define PERMISOS 0644
 
+#define INT 50
+
 #define USUARIO        100 
 #define CATEGORIA      101
 #define PRODUCTO       102
@@ -24,9 +26,12 @@
 #define DETALLEVENTA   104
 #define PROVEEDOR      105
 #define ADQUISICION    106
+#define TYPEDATA_REQUEST  110
 
+#define CLAVE_SER_H_ADDITEM 'a'
 #define CLAVE_SER_H_LOGIN_MC 'z'
 #define CLAVE_SER_H_LOGIN_MC_REQ 'z'
+#define CLAVE_SER_H_D_IO_USUARIO 'u'
 
 
 /************ Estructuras ************/
@@ -43,12 +48,15 @@ struct Usuario {
   int logged;   // 1on 1
   struct Usuario* siguiente;
   struct Usuario* apt_mc_usuario;
+  int count;
 };
 
 struct Categoria{
   int ID_categoria;
   char descripcion [25];
   struct Categoria* siguiente;
+  struct Categoria* apt_mc_categoria;
+  int count;
 };
 
 struct Producto {
@@ -100,7 +108,13 @@ struct FileManager{
   char *fileName;
   FILE *file;
 };
+//Request
 
+struct Request{
+  pid_t ID_usuario;
+  int dataType;
+  struct Request* apt_mc_request;
+};
 
 /******* Definicion de funciones *********/
 
@@ -108,13 +122,14 @@ struct FileManager{
 int Crea_semaforo(key_t llave,int valor_inicial);
 void down(int semid);
 void up(int semid);
-void initSemaphore(key_t *llave,int *semaforo,int *clave);
 int getValueSemaphore(int *id);
+void createSemPublic(int *semaforo,int clave, int valor);
 
 //Endpoints Request
+void *testHilo();
 void *H_login();
-void *H_getItem();
-void H_addItem(void *data,int dataType);
+//void *H_addItem(void *data,int dataType);
+void *H_addItem();
 void *H_updateItem();
 void *H_deleteItem();
 void *H_writeFile();
@@ -122,11 +137,13 @@ void *H_readFile();
 
 //controller Endpoints Request
 void  dispatch_H_login(struct Usuario *usuario);
-void searchInDoc(struct FileManager *file,struct Usuario *usuario);
+void *Dispatch_H_addItem(struct Request *request);
+void searchInDoc(struct FileManager *file);
 
 //Memoria compartida
 void getShmLogin(struct Usuario *usuario,char clave);
 void getShmRequest(int *count, char clave);
+void getShmPublic(void *data,char clave,int typeData);
 
 //archivos
 void openFile(struct FileManager *fileManager);
@@ -138,6 +155,9 @@ void DeleteData();
 
 //Helpers
 void structToString(char* apt_salida,void *data,int dataType);
+
+//Hilos
+void createThreadPublic(pthread_t *ID_thread,void*(*__start_routine)(void *),void *__restrict__ __arg);
 //Errores
 void ErrorMessage(char *message);
 

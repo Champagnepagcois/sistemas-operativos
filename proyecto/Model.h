@@ -5,8 +5,20 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/wait.h>
+#include <sys/sem.h>
+#include <pthread.h>
+#include <string.h>
 
 /*************Constantes****************/
+#define PERMISOS 0644
 #define USER_TYPE_ADMIN  777
 #define USER_TYPE_EMPLOYEE 644
 
@@ -47,12 +59,15 @@ struct Usuario {
   int logged;   // 1on 1
   struct Usuario* siguiente;
   struct Usuario* apt_mc_usuario;
+  int count;
 };
 
 struct Categoria{
   int ID_categoria;
   char descripcion [25];
   struct Categoria* siguiente;
+  struct Categoria* apt_mc_categoria;
+  int count;
 };
 
 struct Producto {
@@ -127,6 +142,17 @@ struct Query {
   char chmod [3];
   FILE *file;
 };
+
+/*************** Semaforos ********************/
+int Crea_semaforo(key_t llave,int valor_inicial);
+void down(int semid);
+void up(int semid);
+int getValueSemaphore(int *id);
+void createSemPublic(int *semaforo,int clave, int valor);
+
+/************** Memoria compartida **************/
+void getShmPublic(void *data,char clave,int typeData);
+
 /************Operaciones Query *****************/
 void new_Ini_User(struct Usuario *);
 /************Operaciones Query *****************/
@@ -162,4 +188,9 @@ void insertarNodoZ(struct Nodo** InicioNodo, void* dataTabla);
 struct Producto* newProducto(int ID_producto,const char* nombre,int cantidad,const char* descripcion, long double precio,int ID_categoria);
 void insertarProducto(struct Producto** InicioLista, int ID_producto,const char* nombre,int cantidad,const char* descripcion, long double precio,int ID_categoria);
 void freeProducto(); //por hacer
+
+
+//Errores
+void ErrorMessage(char *message);
+
 #endif
