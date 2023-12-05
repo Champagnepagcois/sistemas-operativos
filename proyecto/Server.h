@@ -28,6 +28,9 @@
 #define ADQUISICION    106
 #define TYPEDATA_REQUEST  110
 
+#define DATATYPE_INT    840
+#define DATATYPE_CHAR    841
+
 #define CLAVE_SER_H_ADDITEM 'a'
 #define CLAVE_SER_H_LOGIN_MC 'z'
 #define CLAVE_SER_H_LOGIN_MC_REQ 'z'
@@ -155,6 +158,7 @@ void DeleteData();
 
 //Helpers
 void structToString(char* apt_salida,void *data,int dataType);
+void typeDataToString(char *salida, void *data, int dataType, int lonMax);
 
 //Hilos
 void createThreadPublic(pthread_t *ID_thread,void*(*__start_routine)(void *),void *__restrict__ __arg);

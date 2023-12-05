@@ -116,7 +116,12 @@ void createThreadPublic(pthread_t *ID_thread,void*(*__start_routine)(void *),voi
 };
 /****************************************************************/
 
+int getID_Cliente(pid_t id_cliente){
+  return id_cliente%2==0?(id_cliente>32767?getID_Cliente(id_cliente/2):id_cliente):id_cliente>32767?getID_Cliente(id_cliente/3):id_cliente;
+};
+
 int main(){
+  int ID_cliente = getID_Cliente(getpid());
   /********* Pide canal de comunicacion para pasar datos **********/
   struct Request request;
   char clave_addItem = CLAVE_SER_H_ADDITEM;
@@ -127,7 +132,7 @@ int main(){
   createSemPublic(&semaforo_new_request,CLAVE_SER_H_ADDITEM,0);
 
   request.apt_mc_request->dataType = USUARIO;
-  request.apt_mc_request->ID_usuario = getpid();
+  request.apt_mc_request->ID_usuario = ID_cliente;
   //Hacemos una nueva request
   up(semaforo_new_request);
 
@@ -139,7 +144,7 @@ int main(){
   /****************************************************************/
   struct Usuario usuario, usuarioTmp;
   //pide MC
-  getShmPublic(&usuario,getpid(),USUARIO);
+  getShmPublic(&usuario,ID_cliente,USUARIO);
   //Escribo la usuario
 
   usuario.apt_mc_usuario->count =2;
@@ -147,31 +152,32 @@ int main(){
   //crea SEMAFORO
   int semaforo_newData,semaforo_WR_mc, semaforo_done;
   createSemPublic(&semaforo_WR_mc,CLAVE_SER_H_ADDITEM+1,1); //?
-  createSemPublic(&semaforo_newData,0,0); //Nueva request
-  createSemPublic(&semaforo_done,2,0);
+  createSemPublic(&semaforo_newData,ID_cliente,0); //Nueva request
+  createSemPublic(&semaforo_done,ID_cliente*-1,0);
 
   //definir variable de hilo dispatcher
   //pthread_t hilo_dispatcher;
 
   int cc=usuario.apt_mc_usuario->count;
-  //printf("\n%d\n",usuario.apt_mc_usuario->count);
-  printf("Mi pid es:%d\n",getpid());
   while (cc>0){
-    printf("Ingresa el usuario:");
+    //usuarioTmp.nombre[0] = '\0';
+    printf("Ingresa tu nombre:");
     scanf("%15s",usuarioTmp.nombre);
+    printf("Ingresa el usuario:");
+    scanf("%15s",usuarioTmp.usuario);
     printf("Ingresa el password:");
     scanf("%s",usuarioTmp.password);
     printf("%d-\n",0);
+    printf("Nombre antes MC: %s\n",usuario.apt_mc_usuario->nombre);
     down(semaforo_WR_mc);//escribe en MC
-    //request.apt_mc_request->dataType = USUARIO;
-    //request.apt_mc_request->ID_usuario = getpid();
+    usuario.apt_mc_usuario->ID_usuario= cc;
+    usuario.apt_mc_usuario->typeUser =1;
     strcpy(usuario.apt_mc_usuario->nombre,usuarioTmp.nombre);
-    strcpy(usuario.apt_mc_usuario->usuario,usuarioTmp.nombre);
+    strcpy(usuario.apt_mc_usuario->usuario,usuarioTmp.usuario);
     strcpy(usuario.apt_mc_usuario->password,usuarioTmp.password);
-    //strcpy(usuario.apt_mc_usuario->nombre,"USER");
-    //strcpy(usuario.apt_mc_usuario->password,"PASSWORD");
     up(semaforo_WR_mc);//escribe en MC
-    printf("Termino de escribr");
+    printf("Nombre despues MC: %s\n",usuario.apt_mc_usuario->nombre);
+    printf("Termino de escribir..\n");
     up(semaforo_newData);
     cc-=1;
     down(semaforo_done);

@@ -131,13 +131,12 @@ void *Dispatch_H_addItem(struct Request *request){
     //Crea semaforo
     int semaforo_newData, semaforo_RW_file, semaforo_done;
     createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_USUARIO,1);  //semaforo para los archivos
-    createSemPublic(&semaforo_newData,0,0); //Semaforo pasar datos
-    createSemPublic(&semaforo_done,2,0);  //semaforo informar ya se copio
+    createSemPublic(&semaforo_newData,ID_cliente,0); //Semaforo pasar datos
+    createSemPublic(&semaforo_done,ID_cliente*-1,0);  //semaforo informar ya se copio
     //itera por cada dato que pase el cliente
     int count = usuario.apt_mc_usuario->count;
     while (count>0){
       down(semaforo_newData);
-      //printf("Se empieza a atender\n");
       structToString(salida,usuario.apt_mc_usuario,USUARIO);
       down(semaforo_RW_file);//para abrir y escribir en archivo
       openFile(&fileManager);
@@ -148,14 +147,6 @@ void *Dispatch_H_addItem(struct Request *request){
       count-=1; //servidor mantiene un registro propia de cuantos inserts lleva
       up(semaforo_done);
     };
-    //struct Usuario *usuario = (struct Usuario*)data;
-    //strcat(fileManager.fileName,"usuario.txt");
-    //structToString(salida,usuario,USUARIO);
-    //Semaforo;
-    //openFile(&fileManager);
-    //fprintf(fileManager.file,"%s",salida);
-    //closeFile(&fileManager);
-    //Semaforo;
     break;
   /*case CATEGORIA:
     struct Categoria *categoria = (struct Categoria*)data;
@@ -308,11 +299,40 @@ void structToString(char* apt_salida,void *data,int dataType){
   case USUARIO:
     struct Usuario *usuario = (struct Usuario*)data;
     apt_salida[0]='\0';
-    sprintf(apt_salida,"%s\t%s\t%d\n",usuario->nombre,usuario->password,usuario->typeUser);
+    //sprintf(apt_salida,"%s\t%s\t%d\n",usuario->nombre,usuario->password,usuario->typeUser);
+    typeDataToString(apt_salida,&(usuario->ID_usuario),DATATYPE_INT,6);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,usuario->nombre,DATATYPE_CHAR,15);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,usuario->usuario,DATATYPE_CHAR,25);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,usuario->password,DATATYPE_CHAR,20);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(usuario->typeUser),DATATYPE_INT,2);
+    strcat(apt_salida,"\n");
+    break;
+  default:
+    printf("Salu2");
+    break;
+  }
+  return;
+};
+void typeDataToString(char *salida, void *data, int dataType, int lonMax){
+  char bufferTmp [lonMax+1];
+  switch (dataType){
+  case DATATYPE_INT:
+    //printf("%d\n",*((int*)data));
+    sprintf(bufferTmp, "%0*d",lonMax+1,*((int*)data));
+    strcat(salida,bufferTmp);
+    break;
+  case DATATYPE_CHAR:
+  //printf("%s\n",data);
+    snprintf(bufferTmp,sizeof(bufferTmp), "%-*s*",lonMax+1,data);
+    strcat(salida,bufferTmp);
     break;
   default:
     break;
-  }
+  };
   return;
 };
 //Hilos
