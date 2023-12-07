@@ -47,22 +47,14 @@ int getValueSemaphore(int *id){
 
 /******************* Endpoints Request ***********************/
 
-void *H_getItem(int dataType){
-  //Creamos hilos
-  pthread_t id_thread;
-  int threadCorrect;
-  pthread_attr_t atributos;
-  pthread_attr_init(&atributos);
-  pthread_attr_setdetachstate(&atributos,PTHREAD_CREATE_DETACHED);
-  //threadCorrect = pthread_create(&id_thread,&atributos,H_login,NULL/*(void *) 0*/);
-  if(threadCorrect !=0) ErrorMessage("\nError al crear hilo\n");
-  switch (dataType){
-  case USUARIO:
-    break;
-  
-  default:
-    break;
-  }
+void *H_getItem(){
+  struct Request request,requestCopy;
+  char clave_getItem = CLAVE_SER_H_GETITEM;
+  getShmPublic(&request,clave_getItem,TYPEDATA_REQUEST);
+  int semaforo_create_dispatcher, semaforo_request, semaforo_done;
+  createSemPublic(&semaforo_create_dispatcher,CLAVE_SER_H_GETITEM,0);
+  createSemPublic(&semaforo_request,CLAVE_SER_H_GETITEM,0);
+  createSemPublic(&semaforo_done,CLAVE_SER_H_GETITEM,0);
 };
 void *Dispatch_H_getItem(){};
 
@@ -97,135 +89,216 @@ void *H_writeFile(){};
 void *H_readFile(){};
 /****************************************************************/
 /*************** Controller Endpoints Request *******************/
-/**
- * Recibe parametro de tipo Request
- * Segun la tabla es como atiende
- * pide la memoria compartida
- * Crea semaforos
- * -Semaforo para datosCompartidos  semaforo_newData
- * -semaforo para saber si ya escribio o leyo semaforo_done
- * -semaforo region critica del archivo semaforo_rc_file
- * mienttras haya datos()
- * -copia datos
- * abre archivo
- * los escribe en archivo
- * cierra arcchivo
- * avisa que acabo
- * repite
+
+/**Dispatch_H_addItem
+ - Es la funcion que se encarga de atendedr una peticion de tipo PUT.
  * 
+ * request (struct Request)  Tiene los datos necesarios para crear conexion {PID del cliente, tabla en la que se va a operar}
+ * dataType (int) variable para guardar en que tabla vamos a operar
+ * ID_cliente (pid_t) PID del cliente
+ * fileManager (struct FileManager) Tiene los datos para abrir un archivo (nombre de archivo, apuntador a archivo)
+ * filename (char)  guarda el nombre del archivo de la tabla que vamos a operar
+ * salida (char)  Es la cadena que almacenara los datos del insert en un formato especifico para guardar en archivo de texto
+ * semaforo_RW_file (semaforo)  Semaforo para asegurar zona critica en escritura del archivo
+ * semaforo_newData (semaforo)  Semaforo que se utiliza para saber si el cliente ya coloco la informacion en la memoria compartida
+ * semaforo_done (semaforo) Semaforo para avisarle al cliente que ya copiamos los datos de memoria compartida
+ * num_data_in_request (int)  Variable que nos indica cuantos datos nos pasara el cliente
 */
 void *Dispatch_H_addItem(struct Request *request){
   printf("Nueva conexion con cliente:%d\n", request->ID_usuario);
-  //Se copian los datos de la request
   int dataType = request->dataType;
   pid_t ID_cliente = request->ID_usuario;
   struct FileManager fileManager;
+  char filename [20];
   char salida [200];
+  int semaforo_newData, semaforo_RW_file, semaforo_done;
+  int num_data_in_request;
+
   switch (dataType){
   case USUARIO:
-    char fileName []= {"PRUEBA.txt"};
-    fileManager.fileName = fileName;
-    //pide MC
     struct Usuario usuario;
+    strcpy(filename,"usuario.txt");
+    fileManager.fileName = filename;
     getShmPublic(&usuario,ID_cliente,USUARIO);
-    //Crea semaforo
-    int semaforo_newData, semaforo_RW_file, semaforo_done;
-    createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_USUARIO,1);  //semaforo para los archivos
-    createSemPublic(&semaforo_newData,ID_cliente,0); //Semaforo pasar datos
-    createSemPublic(&semaforo_done,ID_cliente*-1,0);  //semaforo informar ya se copio
-    //itera por cada dato que pase el cliente
-    int count = usuario.apt_mc_usuario->count;
-    while (count>0){
+    createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_USUARIO,1);
+    createSemPublic(&semaforo_newData,ID_cliente,0);
+    createSemPublic(&semaforo_done,ID_cliente*-1,0);
+    num_data_in_request = usuario.apt_mc_usuario->count;
+    while (num_data_in_request>0){
       down(semaforo_newData);
+      printf("new Request/Add_user\n");
       structToString(salida,usuario.apt_mc_usuario,USUARIO);
-      down(semaforo_RW_file);//para abrir y escribir en archivo
+      printf("%s\n",salida);
+      down(semaforo_RW_file);
       openFile(&fileManager);
       fprintf(fileManager.file,"%s",salida);
       closeFile(&fileManager);
-      up(semaforo_RW_file);//deja que otro abra el archivo
-      printf("new Request/AddItem\n");
-      count-=1; //servidor mantiene un registro propia de cuantos inserts lleva
+      up(semaforo_RW_file);
+      num_data_in_request-=1;
       up(semaforo_done);
     };
     break;
-  /*case CATEGORIA:
-    struct Categoria *categoria = (struct Categoria*)data;
-    strcat(fileManager.fileName,"categoria.txt");
-    structToString(salida,categoria,CATEGORIA);
-    //semaforo
-    openFile(&fileManager);
-    fprintf(fileManager.file,"%s",salida);
-    closeFile(&fileManager);
-    //semaforo
+  case CATEGORIA:
+    struct Categoria categoria;
+    strcpy(filename,"categoria.txt");
+    fileManager.fileName = filename;
+    getShmPublic(&categoria, ID_cliente,CATEGORIA);
+    createSemPublic(&semaforo_RW_file, CLAVE_SER_H_D_IO_CATEGORIA,1);
+    createSemPublic(&semaforo_newData, ID_cliente,0);
+    createSemPublic(&semaforo_done, ID_cliente*-1,0);
+    num_data_in_request = categoria.apt_mc_categoria->count;
+    while(num_data_in_request>0){
+      down(semaforo_newData);
+      printf("new Request/Add_categoria\n");
+      structToString(salida,categoria.apt_mc_categoria,CATEGORIA);
+      printf("%s\n",salida);
+      down(semaforo_RW_file);
+      openFile(&fileManager);
+      fprintf(fileManager.file,"%s",salida);
+      closeFile(&fileManager);
+      up(semaforo_RW_file);
+      num_data_in_request-=1;
+      up(semaforo_done);
+    };
     break;
   case PRODUCTO:
-    struct Producto *producto = (struct Producto*)data;
-    strcat(fileManager.fileName,"producto.txt");
-    structToString(salida,producto,PRODUCTO);
-    //semaforo
-    openFile(&fileManager);
-    fprintf(fileManager.file,"%s",salida);
-    closeFile(&fileManager);
-    //semaforo
+    struct Producto producto;
+    strcpy(filename,"producto.txt");
+    fileManager.fileName = filename;
+    getShmPublic(&producto,ID_cliente,PRODUCTO);
+    createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_PRODUCTO,1);
+    createSemPublic(&semaforo_newData,ID_cliente,0);
+    createSemPublic(&semaforo_done,ID_cliente*-1,0);
+    num_data_in_request = producto.apt_mc_producto->count;
+    while(num_data_in_request>0){
+      down(semaforo_newData);
+      printf("new Request/Add_producto\n");
+      structToString(salida,producto.apt_mc_producto,PRODUCTO);
+      printf("%s\n",salida);
+      down(semaforo_RW_file);
+      openFile(&fileManager);
+      fprintf(fileManager.file,"%s",salida);
+      closeFile(&fileManager);
+      up(semaforo_RW_file);
+      num_data_in_request-=1;
+      up(semaforo_done);
+    };
     break;
   case VENTA:
-    struct Venta *venta = (struct Venta*)data;
-    strcat(fileManager.fileName,"venta.txt");
-    structToString(salida,venta,VENTA);
-    //semaforo
-    openFile(&fileManager);
-    fprintf(fileManager.file,"%s",salida);
-    closeFile(&fileManager);
-    //semaforo
+    struct Venta venta;
+    strcpy(filename,"venta.txt");
+    fileManager.fileName = filename;
+    getShmPublic(&venta,ID_cliente,VENTA);
+    createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_VENTA,1);
+    createSemPublic(&semaforo_newData,ID_cliente,0);
+    createSemPublic(&semaforo_done,ID_cliente*-1,0);
+    num_data_in_request = venta.apt_mc_venta->count;
+    while(num_data_in_request>0){
+      down(semaforo_newData);
+      printf("new Request/Add_venta\n");
+      structToString(salida,venta.apt_mc_venta,VENTA);
+      printf("%s\n",salida);
+      down(semaforo_RW_file);
+      openFile(&fileManager);
+      fprintf(fileManager.file,"%s",salida);
+      closeFile(&fileManager);
+      up(semaforo_RW_file);
+      num_data_in_request-=1;
+      up(semaforo_done);
+    };
     break;
-  case DETALLEVENTA:
-    struct DetalleVenta *detalleVenta = (struct DetalleVenta*)data;
-    strcat(fileManager.fileName,"detalleVenta.txt");
-    structToString(salida,detalleVenta,DETALLEVENTA);
-    //semaforo
-    openFile(&fileManager);
-    fprintf(fileManager.file,"%s",salida);
-    closeFile(&fileManager);
-    //semaforo
-    break; 
+    case DETALLEVENTA:
+    struct DetalleVenta detalleventa;
+    strcpy(filename,"detalleventa.txt");
+    fileManager.fileName = filename;
+    getShmPublic(&detalleventa,ID_cliente,DETALLEVENTA);
+    createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_DETALLEVENTA,1);
+    createSemPublic(&semaforo_newData,ID_cliente,0);
+    createSemPublic(&semaforo_done,ID_cliente*-1,0);
+    num_data_in_request = detalleventa.apt_mc_detalleventa->count;
+    while(num_data_in_request>0){
+      down(semaforo_newData);
+      printf("new Request/Add_detalleventa\n");
+      structToString(salida,detalleventa.apt_mc_detalleventa,DETALLEVENTA);
+      printf("%s\n",salida);
+      down(semaforo_RW_file);
+      openFile(&fileManager);
+      fprintf(fileManager.file,"%s",salida);
+      closeFile(&fileManager);
+      up(semaforo_RW_file);
+      num_data_in_request-=1;
+      up(semaforo_done);
+    };
+    break;
   case PROVEEDOR:
-    struct Proveedor *proveedor = (struct Proveedor*)data;
-    strcat(fileManager.fileName,"proveedor.txt");
-    structToString(salida,proveedor,PROVEEDOR);
-    //semaforo
-    openFile(&fileManager);
-    fprintf(fileManager.file,"%s",salida);
-    closeFile(&fileManager);
-    //semaforo
-    break; 
+    struct Proveedor proveedor;
+    strcpy(filename,"proveedor.txt");
+    fileManager.fileName = filename;
+    getShmPublic(&proveedor,ID_cliente,PROVEEDOR);
+    createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_PROVEEDOR,1);
+    createSemPublic(&semaforo_newData,ID_cliente,0);
+    createSemPublic(&semaforo_done,ID_cliente*-1,0);
+    num_data_in_request = proveedor.apt_mc_proveedor->count;
+    while(num_data_in_request>0){
+      down(semaforo_newData);
+      printf("new Request/Add_proveedor\n");
+      structToString(salida,proveedor.apt_mc_proveedor,PROVEEDOR);
+      printf("%s\n",salida);
+      down(semaforo_RW_file);
+      openFile(&fileManager);
+      fprintf(fileManager.file,"%s",salida);
+      closeFile(&fileManager);
+      up(semaforo_RW_file);
+      num_data_in_request-=1;
+      up(semaforo_done);
+    };
+    break;
   case ADQUISICION:
-    struct Adquisicion *adquisicion = (struct Adquisicion*)data;
-    strcat(fileManager.fileName,"adquisicion.txt");
-    structToString(salida,adquisicion,ADQUISICION);
-    //semaforo
-    openFile(&fileManager);
-    fprintf(fileManager.file,"%s",salida);
-    closeFile(&fileManager);
-    //semaforo
+    struct Adquisicion adquisicion;
+    strcpy(filename,"adquisicion.txt");
+    fileManager.fileName = filename;
+    getShmPublic(&adquisicion,ID_cliente,ADQUISICION);
+    createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_ADQUISICION,1);
+    createSemPublic(&semaforo_newData,ID_cliente,0);
+    createSemPublic(&semaforo_done,ID_cliente*-1,0);
+    num_data_in_request = adquisicion.apt_mc_adquisicion->count;
+    while(num_data_in_request>0){
+      down(semaforo_newData);
+      printf("new Request/Add_adquisicion\n");
+      structToString(salida,adquisicion.apt_mc_adquisicion,ADQUISICION);
+      printf("%s\n",salida);
+      down(semaforo_RW_file);
+      openFile(&fileManager);
+      fprintf(fileManager.file,"%s",salida);
+      closeFile(&fileManager);
+      up(semaforo_RW_file);
+      num_data_in_request-=1;
+      up(semaforo_done);
+    };
     break;  
-  */default:
+  default:
     break;
   };
+  pthread_exit(0);
 };
 
-void  dispatch_H_login(struct Usuario *usuario){
-  struct FileManager fileManager;
-  char *username = usuario->apt_mc_usuario->usuario;
-  char *password = usuario->apt_mc_usuario->password;
-  openFile(&fileManager);
-  //searchInDoc(&fileManager,usuario,usuario,usuario);
-  closeFile(&fileManager);
-
-  return;
-};
 //Busca en el archivo y rellena la estructura en caso de que si exista alguna coincidencia
-void searchInDoc(struct FileManager *file){
-  //Buscar dato en en 
+void searchInDoc(struct FileManager *filemanager,const char *palabra,int longitudLinea,struct Usuario *usuario){
+  //printf("Bug0\n");
+  openFile(filemanager);
+  char salida[200];
+  char linea[longitudLinea];
+  struct Usuario tmpUsuario;
+  char lineaa[6];
+  
+  while(fgets(linea,sizeof(linea),filemanager->file) != NULL){
+    sscanf(linea,"%d\t%s\t%s\t%s\t%d",
+    &(tmpUsuario.ID_usuario),tmpUsuario.nombre,tmpUsuario.usuario,tmpUsuario.password,&(tmpUsuario.typeUser));
+    //if(strcmp(tmpUsuario.usuario,palabra) == 0){
+      printf("|->%s",linea);
+    //}
+  };
+  closeFile(filemanager);  
   return;
 };
 
@@ -257,7 +330,41 @@ void getShmPublic(void *data,char clave,int typeData){ //Falta terminar
     request->apt_mc_request = (struct Request*)shmat(memoria,0,0);
     if(request->apt_mc_request == (struct Request*)(-1)) ErrorMessage("\nError al signar la memoria compartida al apuntador de getShmPublic/TYPEDATAREQUEST");
     break;
-  //Falta terminar todos las tablas
+  case PRODUCTO:
+    struct Producto *producto = (struct Producto*)data;
+    memoria = shmget(llave_memoria,sizeof(struct Producto), IPC_CREAT | PERMISOS);
+    if(memoria == -1) ErrorMessage("\nError al pedir region en la memoria compartida de getShmPublic/PRODUCTO");
+    producto->apt_mc_producto = (struct Producto*)shmat(memoria,0,0);
+    if(producto->apt_mc_producto == (struct Producto*)(-1)) ErrorMessage("\nError al signar la memoria compartida al apuntador de getShmPublic/TYPEDATAREQUEST");
+    break;
+  case VENTA:
+    struct Venta *venta = (struct Venta*)data;
+    memoria = shmget(llave_memoria,sizeof(struct Venta), IPC_CREAT | PERMISOS);
+    if(memoria == -1) ErrorMessage("\nError al pedir region en la memoria compartida de getShmPublic/VENTA");
+    venta->apt_mc_venta = (struct Venta*)shmat(memoria,0,0);
+    if(venta->apt_mc_venta == (struct Venta*)(-1)) ErrorMessage("\nError al signar la memoria compartida al apuntador de getShmPublic/TYPEDATAREQUEST");
+    break;
+  case DETALLEVENTA:
+    struct DetalleVenta *detalleventa = (struct DetalleVenta*)data;
+    memoria = shmget(llave_memoria,sizeof(struct DetalleVenta), IPC_CREAT | PERMISOS);
+    if(memoria == -1) ErrorMessage("\nError al pedir region en la memoria compartida de getShmPublic/DETALLEVENTA");
+    detalleventa->apt_mc_detalleventa = (struct DetalleVenta*)shmat(memoria,0,0);
+    if(detalleventa->apt_mc_detalleventa == (struct DetalleVenta*)(-1)) ErrorMessage("\nError al signar la memoria compartida al apuntador de getShmPublic/TYPEDATAREQUEST");
+    break;
+  case PROVEEDOR:
+    struct Proveedor *proveedor = (struct Proveedor*)data;
+    memoria = shmget(llave_memoria,sizeof(struct Proveedor), IPC_CREAT | PERMISOS);
+    if(memoria == -1) ErrorMessage("\nError al pedir region en la memoria compartida de getShmPublic/PROVEEDOR");
+    proveedor->apt_mc_proveedor = (struct Proveedor*)shmat(memoria,0,0);
+    if(proveedor->apt_mc_proveedor == (struct Proveedor*)(-1)) ErrorMessage("\nError al signar la memoria compartida al apuntador de getShmPublic/TYPEDATAREQUEST");
+    break;
+  case ADQUISICION:
+    struct Adquisicion *adquisicion = (struct Adquisicion*)data;
+    memoria = shmget(llave_memoria,sizeof(struct Adquisicion), IPC_CREAT | PERMISOS);
+    if(memoria == -1) ErrorMessage("\nError al pedir region en la memoria compartida de getShmPublic/ADQUISICION");
+    adquisicion->apt_mc_adquisicion = (struct Adquisicion*)shmat(memoria,0,0);
+    if(adquisicion->apt_mc_adquisicion == (struct Adquisicion*)(-1)) ErrorMessage("\nError al signar la memoria compartida al apuntador de getShmPublic/TYPEDATAREQUEST");
+    break;
     default:
     break;
   };
@@ -299,20 +406,95 @@ void structToString(char* apt_salida,void *data,int dataType){
   case USUARIO:
     struct Usuario *usuario = (struct Usuario*)data;
     apt_salida[0]='\0';
-    //sprintf(apt_salida,"%s\t%s\t%d\n",usuario->nombre,usuario->password,usuario->typeUser);
-    typeDataToString(apt_salida,&(usuario->ID_usuario),DATATYPE_INT,6);
+    typeDataToString(apt_salida,&(usuario->ID_usuario),DATATYPE_ID,16);
     strcat(apt_salida,"\t");
     typeDataToString(apt_salida,usuario->nombre,DATATYPE_CHAR,15);
     strcat(apt_salida,"\t");
     typeDataToString(apt_salida,usuario->usuario,DATATYPE_CHAR,25);
     strcat(apt_salida,"\t");
+    cifrar(usuario->password);
     typeDataToString(apt_salida,usuario->password,DATATYPE_CHAR,20);
     strcat(apt_salida,"\t");
-    typeDataToString(apt_salida,&(usuario->typeUser),DATATYPE_INT,2);
+    typeDataToString(apt_salida,&(usuario->typeUser),DATATYPE_INT,1);
+    strcat(apt_salida,"\n");
+    break;
+  case CATEGORIA:
+    struct Categoria *categoria = (struct Categoria*)data;
+    apt_salida[0]='\0';
+    typeDataToString(apt_salida,&(categoria->ID_categoria),DATATYPE_ID,16);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,categoria->descripcion,DATATYPE_CHAR,25);
+    strcat(apt_salida,"\n");
+    break;  
+  case PRODUCTO:
+    struct Producto *producto = (struct Producto*)data;
+    apt_salida[0]='\0';
+    typeDataToString(apt_salida,&(producto->ID_producto),DATATYPE_ID,16);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,producto->nombre,DATATYPE_CHAR,20);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(producto->cantidad),DATATYPE_INT,5);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,producto->descripcion,DATATYPE_CHAR,100);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,producto->descripcion,DATATYPE_CHAR,100);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(producto->ID_categoria),DATATYPE_CHAR,16);
+    strcat(apt_salida,"\n");
+    break;
+  case VENTA:
+    struct Venta *venta = (struct Venta*)data;
+    apt_salida[0]='\0';
+    typeDataToString(apt_salida,&(venta->ID_venta),DATATYPE_ID,16);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,venta->fecha,DATATYPE_CHAR,19);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,venta->metodo,DATATYPE_CHAR,12);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(venta->isr),DATATYPE_LD,0);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(venta->monto_total),DATATYPE_LD,0);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(venta->ID_usuario),DATATYPE_CHAR,16);
+    strcat(apt_salida,"\n");
+    break;
+  case DETALLEVENTA:
+    struct DetalleVenta *detalleventa = (struct DetalleVenta*)data;
+    apt_salida[0]='\0';
+    typeDataToString(apt_salida,&(detalleventa->ID_detalleventa),DATATYPE_ID,16);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(detalleventa->precio_unitario),DATATYPE_LD,0);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(detalleventa->descuento),DATATYPE_INT,2);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(detalleventa->cantidad),DATATYPE_INT,6);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(detalleventa->ID_producto),DATATYPE_CHAR,0);
+    strcat(apt_salida,"\n");
+    break;
+  case PROVEEDOR:
+    struct Proveedor *proveedor = (struct Proveedor*)data;
+    apt_salida[0]='\0';
+    typeDataToString(apt_salida,&(proveedor->ID_proveedor),DATATYPE_ID,16);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,proveedor->descripcion,DATATYPE_CHAR,150);
+    strcat(apt_salida,"\n");
+    break;
+  case ADQUISICION:
+    struct Adquisicion *adquisicion = (struct Adquisicion*)data;
+    apt_salida[0]='\0';
+    typeDataToString(apt_salida,&(adquisicion->ID_provedor),DATATYPE_CHAR,16);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(adquisicion->ID_producto),DATATYPE_CHAR,16);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(adquisicion->ID_usuario),DATATYPE_CHAR,16);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,adquisicion->fecha,DATATYPE_CHAR,19);
+    strcat(apt_salida,"\t");
+    typeDataToString(apt_salida,&(adquisicion->cantidad),DATATYPE_INT,0);
     strcat(apt_salida,"\n");
     break;
   default:
-    printf("Salu2");
     break;
   }
   return;
@@ -330,10 +512,78 @@ void typeDataToString(char *salida, void *data, int dataType, int lonMax){
     snprintf(bufferTmp,sizeof(bufferTmp), "%-*s*",lonMax+1,data);
     strcat(salida,bufferTmp);
     break;
+  case DATATYPE_LD://agregar constante
+    char bufferld [10];
+    snprintf(bufferld,sizeof(bufferld),"%09.2Lf",*((long double*)data));
+    strcat(salida,bufferld);
+    break;
+  case DATATYPE_ID:
+    generateID(salida);
+    break;
   default:
     break;
   };
   return;
+};
+
+void generateID(char *salida){
+  srand((unsigned int)time(NULL));
+  // Tiempo actual
+  time_t t = time(NULL);
+  struct tm tiempoLocal = *localtime(&t);
+  // El lugar en donde se pondrá la fecha y hora formateadas y 2 valores random
+  char string_ID[70],buffer[2];
+  char *formato = "%Y%m%d%H%M%S";
+  int bytesEscritos =
+  strftime(string_ID, sizeof string_ID, formato, &tiempoLocal);
+  int random_value1 = rand() % 1000;
+  int random_value2 = rand() % 1000;
+  snprintf(buffer,sizeof(buffer),"%d",random_value1);
+  strcat(string_ID,buffer);
+  snprintf(buffer,sizeof(buffer),"%d",random_value2);
+  strcat(string_ID,buffer);
+  strcat(salida,string_ID);
+};
+
+void cifrar(char *password){
+  int clave = KEY_SECRET_PASSWORD;
+  char caracter;
+  for(int i =0;password[i] != '\0'; ++i) {
+    caracter = password[i];
+    // Cifrar solo letras mayúsculas
+    if(caracter >= 'A' && caracter <= 'Z'){
+      caracter = (caracter + clave - 'A' + 26) % 26 + 'A';
+    };
+    // Cifrar solo letras minúsculas
+    if(caracter >= 'a' && caracter <= 'z'){
+      caracter = (caracter + clave - 'a' + 26) % 26 + 'a';
+    };
+    if(caracter >= '0' && caracter <= '9'){
+      caracter = (caracter + clave - '0' + 10) % 10 + '0';
+    }
+    password[i] = caracter;
+  };
+};
+
+void descifrar(char *password){
+  int clave = KEY_SECRET_PASSWORD;
+  char caracter;
+  for(int i =0;password[i] != '\0';i++) {
+    caracter = password[i];
+    // Descifrar solo letras mayúsculas
+    if(caracter >= 'A' && caracter <= 'Z'){
+      caracter = (caracter - clave - 'A' + 26) % 26 + 'A';
+    };
+    // Descifrar solo letras minúsculas
+    if(caracter >= 'a' && caracter <= 'z'){
+      caracter = (caracter - clave - 'a' + 26) % 26 + 'a';
+    };
+    //Numeros
+    if(caracter >= '0' && caracter <= '9'){
+      caracter = (caracter - clave - '0' + 10) % 10 + '0';
+    }
+    password[i] = caracter;
+  };
 };
 //Hilos
 

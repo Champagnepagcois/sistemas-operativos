@@ -54,7 +54,7 @@ struct Usuario {
   int ID_usuario; //lon 6
   char nombre [15]; 
   char usuario [25];
-  char password [120];
+  char password [20];
   int typeUser; // lon 2
   int logged;   // 1on 1
   struct Usuario* siguiente;
@@ -78,6 +78,8 @@ struct Producto {
   long double precio; //lon 10
   int ID_categoria;     //6
   struct Producto* siguiente;
+  struct Prodcuto* apt_mc_prodcuto;
+  int count;
 };
 
 struct Venta {
@@ -88,21 +90,27 @@ struct Venta {
   long double monto_total;
   int ID_usuario;
   struct Venta* siguiente;
+  struct Venta* apt_mc_venta;
+  int count;
 };
 
 struct DetalleVenta {
-  int ID_venta;
+  int ID_detalleventa;
   int ID_producto;
   long double precio_unitario;
   int descuento;//por definir
   int cantidad;
   struct DetalleVenta* siguiente;
+  struct DetalleVenta* apt_mc_detalleventa;
+  int count;
 };
 
 struct Proveedor{
- int ID_proveedor;
- char descripcion [150];
+  int ID_proveedor;
+  char descripcion [150];
   struct Proveedor* siguiente;
+  struct Proveedor* apt_mc_proveedor;
+  int count;
 };
 
 struct Adquisicion{
@@ -112,6 +120,8 @@ struct Adquisicion{
   char fecha [19]; //HH:mm:ss-XX/XX/XXXX
   int cantidad;
   struct Adquisicion* siguiente;
+  struct Adquisicion* apt_mc_adquisicion;
+  int count;
 };
 
 /*******Modelos funcionamiento**********/
