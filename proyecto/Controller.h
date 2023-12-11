@@ -24,6 +24,7 @@ struct Adquisicion;
 
 void Auth(struct Usuario *);
 void MainMenu(struct Usuario *);
+void c_login(struct Usuario *user);
 void AddItems();
 void GetItems();
 void UpdateItems();

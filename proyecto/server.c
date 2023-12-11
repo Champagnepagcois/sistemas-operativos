@@ -55,8 +55,47 @@ void *H_getItem(){
   createSemPublic(&semaforo_create_dispatcher,CLAVE_SER_H_GETITEM,0);
   createSemPublic(&semaforo_request,CLAVE_SER_H_GETITEM,0);
   createSemPublic(&semaforo_done,CLAVE_SER_H_GETITEM,0);
+  pthread_t hilo_dispatcher;
+  printf("Servicio getItem, escuchando....\n");
+  while(1){
+    down(semaforo_request);
+    requestCopy.dataType = request.apt_mc_request->dataType;
+    requestCopy.ID_usuario = request.apt_mc_request->ID_usuario;
+    createThreadPublic(&hilo_dispatcher,(void*)Dispatch_H_getItem, (void*) &requestCopy);
+    up(semaforo_done);
+  }
 };
-void *Dispatch_H_getItem(){};
+void *Dispatch_H_getItem(struct Request *request){
+  printf("Nueva conexion con el cliente:%d\n",request->ID_usuario);
+  int dataType = request->dataType;
+  pid_t ID_cliente = request->ID_usuario;
+  struct FileManager fileManager;
+  char filename[20];
+  int semaforo_newData,semaforo_RW_file, semaforo_done;
+  int num_data_in_response;
+
+  switch (dataType){
+  case USUARIO:
+    struct Usuario usuario;
+    strcpy(filename,"usuario.txt");
+    fileManager.fileName = filename;
+    getShmPublic(&usuario,ID_cliente,USUARIO);
+    createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_USUARIO,1);
+    createSemPublic(&semaforo_newData,ID_cliente,0);
+    createSemPublic(&semaforo_done,ID_cliente*-1,0);
+    //Como le decimos alcliente que ya? count ==0?
+    down(semaforo_RW_file);
+    //Extrae el dato
+    
+    up(semaforo_RW_file);
+    //Pega el dato en mc
+    //le avisa al cliente que ya acabo
+
+    break;
+  default:
+    break;
+  }
+};
 
 void *H_addItem(){
   struct Request request,requestCopy;

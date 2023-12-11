@@ -34,6 +34,7 @@
 #define DETALLEVENTA   104
 #define PROVEEDOR      105
 #define ADQUISICION    106
+#define TYPEDATA_REQUEST  110
 
 #define QUERYSUCCESS   200
 #define ERRORFILEOPEN  404
@@ -41,6 +42,11 @@
 #define VENTANA_MAIN  1000
 #define VENTANA_VENTA 1001
 #define VENTANA_EDITAR  1002
+
+#define CLAVE_SER_H_ADDITEM 'a'
+#define CLAVE_SER_H_GETITEM 'g'
+#define CLAVE_SER_H_UPDATEITEM 'e'
+#define CLAVE_SER_H_DELETEITEM 'f'
 
 /**************Modelos******************/
 
@@ -74,9 +80,10 @@ struct Producto {
   int ID_producto; //lon 6
   char nombre [20];
   int cantidad;   // lon 1000
-  char descripcion [100]; 
+  char descripcion [500]; 
   long double precio; //lon 10
   int ID_categoria;     //6
+  int existencia; //8
   struct Producto* siguiente;
   struct Prodcuto* apt_mc_prodcuto;
   int count;
@@ -153,6 +160,28 @@ struct Query {
   FILE *file;
 };
 
+
+struct Request {
+  pid_t ID_usuario;
+  int dataType;
+  struct Request* apt_mc_request;
+};
+
+/******* Modelo para carrito de compras*/
+
+struct ShoppingCart {
+  long double montoTotal;
+  struct ShoppingCart* next;
+  struct ShoppingCart* apt_mc_sp;
+  int count;
+};
+
+
+
+/****************** Variado ****************/
+
+void createThreadPublic(pthread_t *ID_thread,void*(*__start_routine)(void *),void *__restrict__ __arg);
+int getID_Cliente(pid_t id_cliente);
 /*************** Semaforos ********************/
 int Crea_semaforo(key_t llave,int valor_inicial);
 void down(int semid);
@@ -175,7 +204,8 @@ void usuarioTostr(struct Query*, char*);
 
 int newQuery(struct Query*);
 int QueryInsert (struct Query*);
-int QuerySelect (struct Query*);
+void QuerySelect(struct Request* request,void* data,int dataType);
+
 int QueryUpdate (struct Query*);
 int QueryDelete (struct Query*);
 

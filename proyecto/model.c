@@ -11,96 +11,12 @@ void new_Ini_User(struct Usuario *user){
   return;
 };
 
-struct Nodo* crearNodo(void* dataTabla){
-  struct Nodo* nuevoNodo = (struct Nodo*)malloc(sizeof(struct Nodo));
-  nuevoNodo->dataTabla= dataTabla;
-  nuevoNodo->siguiente = NULL;
-  return nuevoNodo;
-};
 
-void insertarNodoA(struct Nodo** InicioNodo, void* dataTabla){
-  struct Nodo* nuevoNodo = crearNodo(dataTabla);
-  nuevoNodo->siguiente = *InicioNodo;
-  *InicioNodo = nuevoNodo;
-};
 
-void insertarNodoZ(struct Nodo** InicioNodo, void* dataTabla){
-  struct Nodo* nuevoNodo = crearNodo(dataTabla);
-  nuevoNodo->siguiente = NULL;
-
-  if(*InicioNodo == NULL){
-    *InicioNodo = nuevoNodo;  
-  }else{
-    struct Nodo* actual = *InicioNodo;
-    while (actual->siguiente != NULL){
-      actual = actual->siguiente;
-    };
-    actual->siguiente =nuevoNodo;
-  };
-};
-
-struct Producto* newProducto(int ID_producto,const char* nombre,int cantidad,const char* descripcion, long double precio,int ID_categoria){
-  struct Producto* nuevoProducto = (struct Producto*)malloc(sizeof(struct Producto));
-  nuevoProducto->ID_producto = ID_categoria;
-  strcpy(nuevoProducto->nombre,nombre);
-  strcpy(nuevoProducto->descripcion, descripcion);
-  nuevoProducto->precio = precio;
-  nuevoProducto->cantidad = cantidad;
-  nuevoProducto->ID_categoria = ID_categoria;
-  nuevoProducto->siguiente = NULL;
-  return nuevoProducto;
-};
-
-void insertarProducto(struct Producto** InicioLista, int ID_producto,const char* nombre,int cantidad,const char* descripcion, long double precio,int ID_categoria){
-  struct Producto* nuevoProducto = newProducto( ID_producto, nombre, cantidad, descripcion,precio, ID_categoria);
-  nuevoProducto->siguiente = *InicioLista;
-  *InicioLista = nuevoProducto;
-};
-
-/*************Logica query***************/
-int newQuery(struct Query* consulta){
-  printf("\nAqui paso en newQuery()\n");
-  printf("\ntypeQuery = %d\n", consulta->typeQuery);
-  switch (consulta->typeQuery){
-  case INSERT:
-    printf("\nSi entra al insert\n");
-    return QueryInsert(consulta);
-    break;
-  case SELECT:
-    /* code */
-    return QuerySelect(consulta);
-    break;
-  case UPDATE:
-    /* code */
-    return QueryUpdate(consulta);
-    break;
-  case DELETE:
-    /* code */
-    return QueryDelete(consulta);
-    break;
-  default:
-    break;
-  }    
-
-  /*void (*Operaciones[])(void)={QueryInsert,QuerySelect,QueryUpdate,QueryDelete};
-  abrirArchivo(consulta,Operaciones[consulta->typeQuery]());//Tengo que pasar la funcion a realizar
-  */
-};
 
 /****************************************/
 
 
-
-/*************FileIO***************/
-int openFile(struct Query* consulta){
-  printf("Aqui se abre el archivo");
-  consulta->file = fopen(consulta->fileName, consulta->chmod);
-  if(consulta->file == NULL){
-    printf("\nNo se pudo abrir el archivo\n");
-    return ERRORFILEOPEN;
-  };
-  return 0; 
-};
 
 void structToStr(struct Query* consulta){
   char *string;
@@ -111,24 +27,11 @@ void structToStr(struct Query* consulta){
 };
 /*************Logic query***********/
 int QueryInsert(struct Query* consulta){
-  printf("\nAqui paso en QueryInsert()\n");
   char output [500] = {'\0'};
   FILE* file;
-  //consulta->file = file;
-
-
   switch (consulta->table){
 
   case USUARIO:
-    printf("\nEntro al case de USUARIO\n");
-    openFile(consulta);
-    //START CODE
-    usuarioTostr(consulta,output);
-    printf("\n\n%s\n\n",output);
-    fprintf(consulta->file,"%s",output);
-    //END
-    fclose(consulta->file);
-
   break;
   case CATEGORIA:
   /* code */
@@ -153,8 +56,32 @@ int QueryInsert(struct Query* consulta){
   }
   return 0;
 };
-int QuerySelect(struct Query* consulta){
-  return 0;
+
+void QuerySelect(struct Request* request,void* data,int dataType){
+  request->ID_usuario = getID_Cliente(getpid());
+  switch (dataType){
+  case USUARIO:
+    struct Usuario *usuario = (struct Usuario*)data;
+    int semaforo_new_request,semaforo_newData,semaforo_WR_mc,semaforo_done;
+    //pide mc
+    getShmPublic(usuario,request->ID_usuario,USUARIO);
+    usuario->apt_mc_usuario->count =1;
+    getShmPublic(request,CLAVE_SER_H_GETITEM,TYPEDATA_REQUEST);
+    //copia datos a la mc
+    strcpy(usuario->apt_mc_usuario->usuario,usuario->usuario);
+    strcpy(usuario->apt_mc_usuario->password,usuario->password);
+    //crea semaforos
+    createSemPublic(&semaforo_WR_mc,CLAVE_SER_H_ADDITEM+1,1); //?
+    createSemPublic(&semaforo_newData,usuario->ID_usuario,0); //Nueva request
+    createSemPublic(&semaforo_done,(usuario->ID_usuario)*-1,0);
+
+
+
+    break;
+  
+  default:
+    break;
+  };
 };
 int QueryUpdate(struct Query* consulta){
   return 0;
@@ -164,18 +91,20 @@ int QueryDelete(struct Query* consulta){
 };
 /***********************************/
 
-void usuarioTostr(struct Query* consulta, char* output){
-  struct QueryKeyValue* curent = consulta->keyValue;
-  if(curent == NULL){
-    printf("\ncurrent es  null\n");
-    strcat(output,"No hay nada");
-  }
-  while (curent != NULL){
-    strcat(output,curent->value);
-    curent = curent->next;
-    strcat(output,"\t"); //agregar tabulador
-  };
+/******************** variado ************************/
+
+void createThreadPublic(pthread_t *ID_thread,void*(*__start_routine)(void *),void *__restrict__ __arg){
+  int threadCorrect;
+  pthread_attr_t atributos;
+  pthread_attr_init(&atributos);
+  pthread_attr_setdetachstate(&atributos,PTHREAD_CREATE_DETACHED);
+  threadCorrect = pthread_create(ID_thread,&atributos,__start_routine, __arg);
+  if(threadCorrect != 0) ErrorMessage("Error en la creación del hilo");
   return;
+};
+
+int getID_Cliente(pid_t id_cliente){
+  return id_cliente%2==0?(id_cliente>32767?getID_Cliente(id_cliente/2):id_cliente):id_cliente>32767?getID_Cliente(id_cliente/3):id_cliente;
 };
 
 /*************************/

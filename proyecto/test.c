@@ -194,9 +194,9 @@ void searchInDoc(struct FileManager *filemanager,const char *palabra,int longitu
   while(fgets(linea,sizeof(linea),filemanager->file) != NULL){
     sscanf(linea,"%d\t%s\t%s\t%s\t%d",
     &(tmpUsuario.ID_usuario),tmpUsuario.nombre,tmpUsuario.usuario,tmpUsuario.password,&(tmpUsuario.typeUser));
-    //if(strcmp(tmpUsuario.usuario,palabra) == 0){
+    if(strcmp(tmpUsuario.usuario,palabra) == 0){
       printf("|->%s",linea);
-    //}
+    }
   };
   closeFile(filemanager);  
   return;
@@ -204,13 +204,13 @@ void searchInDoc(struct FileManager *filemanager,const char *palabra,int longitu
 
 int main(){
   struct FileManager filemanager;
-  char filename []= {"PRUEBA.txt"};
+  char filename []= {"usuario.txt"};
 
   filemanager.fileName =filename;
 
   struct Usuario usuario2;
-  strcat(usuario2.usuario,"fofo");
-  //searchInDoc(&filemanager,"ere",75,&usuario2);
+  strcat(usuario2.usuario,"2");
+  searchInDoc(&filemanager,"champa",75,&usuario2);
 
   int ID_cliente = getID_Cliente(getpid());
   /********* Pide canal de comunicacion para pasar datos **********/

@@ -36,6 +36,8 @@
 
 #define CLAVE_SER_H_ADDITEM 'a'
 #define CLAVE_SER_H_GETITEM 'g'
+#define CLAVE_SER_H_UPDATEITEM 'e'
+#define CLAVE_SER_H_DELETEITEM 'f'
 #define CLAVE_SER_H_LOGIN_MC 'z'
 #define CLAVE_SER_H_LOGIN_MC_REQ 'z'
 #define CLAVE_SER_H_D_IO_USUARIO 'j'
@@ -76,9 +78,10 @@ struct Producto {
   int ID_producto; //lon 6
   char nombre [20];
   int cantidad;   // lon 4
-  char descripcion [100]; 
+  char descripcion [50]; 
   long double precio; //lon 10
   int ID_categoria;     //6
+  int existencia;
   struct Producto* apt_mc_producto; 
   struct Producto* siguiente;
   int count;
