@@ -1,7 +1,7 @@
 #include "View.h"
 
 void showAuthPage(struct Usuario *user){
-  user->logged=0;
+  user->logged=0;//Formazos a cerrar sesion
   initscr(); // Inicializar ncurses
   cbreak(); // Habilitar la entrada de caracteres sin necesidad de presionar "Enter"
   noecho(); // No mostrar caracteres en la pantalla mientras se escriben
@@ -17,27 +17,45 @@ void showAuthPage(struct Usuario *user){
   mvwprintw(win, 2, 2, "Usuario:");
   mvwprintw(win, 3, 2, "Contraseña:");
   wrefresh(win);
-  char usuario[50];
-  char contrasena[50];
+  char usuario[25];
+  char contrasena[20];
   int ch;
   int contrasena_index = 0;
   // Capturar el usuario
   while (1) {
-    ch = mvwgetch(win, 2, 15 + contrasena_index);
-    if(ch == '\n' || ch == KEY_ENTER) break;
-    if(contrasena_index < sizeof(usuario) - 1){
-      usuario[contrasena_index++] = ch;
-      waddch(win, ch);
+  ch = mvwgetch(win, 2, 15 + contrasena_index);
+  if(ch == '\n' || ch == KEY_ENTER) break;
+
+  if (ch == 127 ||  ch ==8) {
+    // Utilizar código ASCII para "delete" (127)
+    if (contrasena_index > 0) {
+      contrasena_index--;
+      wmove(win, 2, 15 + contrasena_index);
+      wdelch(win);
+      wmove(win, 2, 15 + contrasena_index);
+      waddch(win,32);
       wrefresh(win);
-    };
+    }
+  }else if(contrasena_index < sizeof(usuario) - 1){
+    usuario[contrasena_index++] = ch;
+    waddch(win, ch);
+    wrefresh(win);
   };
+};
   usuario[contrasena_index] = '\0';
   contrasena_index =0;
   // Capturar la contraseña y mostrar asteriscos
   while(1){
     ch = mvwgetch(win, 3, 15 + contrasena_index);
     if (ch == '\n' || ch == KEY_ENTER) break;
-    if (contrasena_index < sizeof(contrasena) - 1) {
+    if(ch == 8){
+      if(contrasena_index>0){
+        contrasena_index--;
+        wmove(win,3,15 + contrasena_index);
+        wdelch(win);
+        wrefresh(win);
+      }
+    }else if (contrasena_index < sizeof(contrasena) - 1) {
       contrasena[contrasena_index++] = ch;
       waddch(win, '*');
       wrefresh(win);
@@ -45,8 +63,10 @@ void showAuthPage(struct Usuario *user){
   };
   contrasena[contrasena_index] = '\0';
   // Simular la autenticación
-  if(strcmp(usuario, "") == 0 && strcmp(contrasena, "") == 0) {
-    user->logged = 1;
+  strcpy(user->usuario, usuario);
+  strcpy(user->password, contrasena);
+  c_login(user);
+  if(user->logged == 1) {
     mvwprintw(win, 5, 2, "Inicio de sesión exitoso!");
   }else{
     mvwprintw(win, 5, 2, "Inicio de sesión fallido.");
@@ -498,9 +518,12 @@ void showInfoSales(struct Usuario* user){
 
 
 void showPageAdd(struct Usuario *user){
+  struct Producto producto;
   FIELD *field[4];
   FORM  *my_form;
   int ch;
+  int screen_width,screen_height;
+  getmaxyx(stdscr, screen_height, screen_width);
 
   /* Inicializar curses */
   initscr();
@@ -509,9 +532,9 @@ void showPageAdd(struct Usuario *user){
   keypad(stdscr, TRUE);
   start_color();
   init_pair(1, COLOR_BLUE, COLOR_BLACK);
-
+  init_pair(2, COLOR_RED, COLOR_BLACK);
+  init_pair(3, COLOR_GREEN, COLOR_BLACK);
   refresh();
-
   /* Inicializar los campos */
   //                   altura,largo, empieza a escribir
   field[0] = new_field(1, 20, 4, 22, 0, 0);
@@ -519,13 +542,11 @@ void showPageAdd(struct Usuario *user){
   field[2] = new_field(1, 10, 8, 22, 0, 0);
   field[3] = new_field(1, 10, 10, 22, 0, 0);
   field[4] = NULL;
-
   /* Establecer las opciones de campo */
   for(int i = 0; i < 4; ++i) {
     set_field_back(field[i], A_UNDERLINE);
     field_opts_off(field[i], O_AUTOSKIP);
   };
-
   /* Crear el formulario y publicarlo */
   my_form = new_form(field);
   post_form(my_form);
@@ -536,8 +557,10 @@ void showPageAdd(struct Usuario *user){
   mvprintw(8, 10, "Precio: $ ");
   mvprintw(10, 10, "Cantidad: # ");
 
-
   /******/
+
+  char titleMenu [] ={"Agregar producto"};
+  mvprintw(0,((screen_width-(sizeof(titleMenu))/sizeof(char*))/2)-((sizeof(titleMenu)/sizeof(char*))/2),titleMenu);
   attron(COLOR_PAIR(1));
   //mvprintw(LINES - 2, 0, "Use PageUp y PageDown para desplazar una pagina de elementos abajo o arriba");
   mvprintw(LINES - 2, 0, "Use  F2 para agregar el producto| F1 Para cancelar ");
@@ -560,6 +583,56 @@ void showPageAdd(struct Usuario *user){
       /* Ir al campo anterior */
       form_driver(my_form, REQ_PREV_FIELD);
       form_driver(my_form, REQ_END_LINE);
+      break;
+    case 8: // KEY DELETE
+      form_driver(my_form, REQ_END_FIELD);
+      /* Ir al final del buffer actual */
+      /* Deja en el ultimo caracter    */
+      form_driver(my_form, REQ_DEL_PREV);
+      break;
+    case 266: // KEY F2//Obtiene todos los datos
+      /*Obtiene todos los datos*/
+      form_driver(my_form,REQ_FIRST_FIELD);
+      const char *nombre = field_buffer(field[0], 0);
+      form_driver(my_form,REQ_NEXT_FIELD);
+      const char *descripcion = field_buffer(field[1], 0);
+      form_driver(my_form, REQ_NEXT_FIELD);
+      const char *precio_str = field_buffer(field[2], 0);
+      long double precio = atof(precio_str);
+      form_driver(my_form, REQ_NEXT_FIELD);
+      const char *existencia_str = field_buffer(field[3], 0);
+      int existencia = atoi(existencia_str);
+      //Validamos los campos
+      if(isAllWhitespaceString(nombre)==1 | isAllWhitespaceString(descripcion)==1 || isAllWhitespaceString(precio_str)==1 || isAllWhitespaceString(existencia_str)==1){
+        attron(COLOR_PAIR(2));
+        mvprintw(15, 10, "Completa todos los campos");
+        attroff(COLOR_PAIR(2));
+        move(4, 22);
+        refresh();
+      }else{
+        strcpy(producto.nombre,nombre);
+        strcpy(producto.descripcion, descripcion);
+        producto.precio = precio;
+        producto.existencia = existencia;
+        //Agregamos producto a la cola
+        struct Producto *nodo=NULL;
+        enQueue((void**)&nodo,&producto,PRODUCTO);
+        c_addNewProduct(user,(void**)&nodo);
+        //Limpiamos campos
+        form_driver(my_form,REQ_FIRST_FIELD);
+        for(int i=0;i<4;i++){
+          form_driver(my_form,REQ_CLR_FIELD);
+          form_driver(my_form,REQ_NEXT_FIELD);
+        };
+        //Imprimimos mensaje de exito
+        attron(COLOR_PAIR(3));
+        //mvprintw(LINES - 2, 0, "Use PageUp y PageDown para desplazar una pagina de elementos abajo o arriba");
+        mvprintw(15, 10, "El producto %s fue agregado",producto.nombre);
+        attroff(COLOR_PAIR(3));
+        move(4, 22);
+        refresh();
+      }
+      
       break;
     default:
       /* Si este es un caracter normal, se optiene */
@@ -1152,3 +1225,13 @@ void print_in_middle(WINDOW *win, int starty, int startx, int width, char *strin
   wattroff(win, color);
   refresh();
 };
+
+int isAllWhitespaceString(const char *str){
+  while (*str) {
+    if(!isspace((unsigned char)*str)){
+      return 0; 
+    };
+    str++;
+  };
+  return 1;
+}

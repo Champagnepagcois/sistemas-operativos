@@ -6,6 +6,7 @@
 #include <menu.h>
 #include <curses.h>
 #include <form.h>
+#include <ctype.h>
 
 
 /******* CONSTANTES *******/
@@ -38,5 +39,6 @@ void showPageSells(struct Usuario *user);
 void print_in_middle(WINDOW *win, int starty, int startx, int width, char *string, chtype color);
 //Helpers
 void print_menu(WINDOW *menu_win, int highlight, int n_choices,char **choices);
+int isAllWhitespaceString(const char *str);
 
 #endif

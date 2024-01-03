@@ -1,5 +1,6 @@
 #!/bin/bash
 #chmod +x compilar.sh //Para poder utilizarlo en terminal
+clear
 echo -e "Compilando el programa....\n\n"
 nombre="main"
 

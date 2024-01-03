@@ -2,6 +2,7 @@
 
 void Auth(struct Usuario *user){
   showAuthPage(user);
+  return;
 };
 void MainMenu(struct Usuario *user){
   //get all the data
@@ -10,14 +11,22 @@ void MainMenu(struct Usuario *user){
   return;
 };
 
-//Pide mc y hace conexion, hace request
+//inicia sesion
 void c_login(struct Usuario *user){
   struct Request request;
-  request.dataType = USUARIO;
-  QuerySelect(&request,user,USUARIO);
+  struct Usuario *nodo = NULL;
+  QuerySelect(&request,user,(void**)&nodo,USUARIO);
   return;
 };
-void NuevaVenta(){
-};
-void getUser();
 
+//Agregar datos
+void c_addNewProduct(struct Usuario *user,void **nodo){
+  struct Request request;
+  QueryInsert(&request,nodo,PRODUCTO);
+  return;
+};
+
+
+//Traer productos
+
+//Editar productos

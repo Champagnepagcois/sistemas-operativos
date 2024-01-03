@@ -36,6 +36,11 @@
 #define ADQUISICION    106
 #define TYPEDATA_REQUEST  110
 
+#define DATATYPE_INT    840
+#define DATATYPE_CHAR   841
+#define DATATYPE_LD     842
+#define DATATYPE_ID     843
+
 #define QUERYSUCCESS   200
 #define ERRORFILEOPEN  404
 
@@ -57,7 +62,7 @@ struct Navegacion{
 };
 
 struct Usuario {
-  int ID_usuario; //lon 6
+  char ID_usuario [16]; //lon 16
   char nombre [15]; 
   char usuario [25];
   char password [20];
@@ -69,7 +74,7 @@ struct Usuario {
 };
 
 struct Categoria{
-  int ID_categoria;
+  char ID_categoria [16];
   char descripcion [25];
   struct Categoria* siguiente;
   struct Categoria* apt_mc_categoria;
@@ -77,32 +82,32 @@ struct Categoria{
 };
 
 struct Producto {
-  int ID_producto; //lon 6
+  char ID_producto [16]; //lon 16
   char nombre [20];
-  int cantidad;   // lon 1000
-  char descripcion [500]; 
+  int cantidad;   // lon 4char
+  char descripcion [50]; 
   long double precio; //lon 10
-  int ID_categoria;     //6
+  char ID_categoria [16];     //6
   int existencia; //8
+  struct Producto* apt_mc_producto;
   struct Producto* siguiente;
-  struct Prodcuto* apt_mc_prodcuto;
   int count;
 };
 
 struct Venta {
-  int ID_ventas;
+  char ID_venta [16];
   char fecha [19]; //HH:mm:ss-XX/XX/XXXX
   char metodo [12];
   long double isr;
   long double monto_total;
-  int ID_usuario;
+  char ID_usuario [16];
   struct Venta* siguiente;
   struct Venta* apt_mc_venta;
   int count;
 };
 
 struct DetalleVenta {
-  int ID_detalleventa;
+  char ID_detalleventa [16];
   int ID_producto;
   long double precio_unitario;
   int descuento;//por definir
@@ -113,7 +118,7 @@ struct DetalleVenta {
 };
 
 struct Proveedor{
-  int ID_proveedor;
+  char ID_proveedor [16];
   char descripcion [150];
   struct Proveedor* siguiente;
   struct Proveedor* apt_mc_proveedor;
@@ -121,9 +126,9 @@ struct Proveedor{
 };
 
 struct Adquisicion{
-  int ID_provedor;
-  int ID_producto;
-  int ID_usuario;
+  char ID_provedor [16];
+  char ID_producto [16];
+  char ID_usuario [16];
   char fecha [19]; //HH:mm:ss-XX/XX/XXXX
   int cantidad;
   struct Adquisicion* siguiente;
@@ -188,9 +193,11 @@ void down(int semid);
 void up(int semid);
 int getValueSemaphore(int *id);
 void createSemPublic(int *semaforo,int clave, int valor);
+void deleteSemPublic(int *semaforo);
 
 /************** Memoria compartida **************/
 void getShmPublic(void *data,char clave,int typeData);
+void freeShmPublic(void *aptchar, char clave,int dataType);
 
 /************Operaciones Query *****************/
 void new_Ini_User(struct Usuario *);
@@ -203,8 +210,9 @@ void structToStr(struct Query*);
 void usuarioTostr(struct Query*, char*);
 
 int newQuery(struct Query*);
-int QueryInsert (struct Query*);
-void QuerySelect(struct Request* request,void* data,int dataType);
+//int QueryInsert (struct Request* request,void* data,void **nodo,int dataType);
+int QueryInsert (struct Request* request,void **nodo,int dataType);
+void QuerySelect(struct Request* request,void* data,void **nodo,int dataType);
 
 int QueryUpdate (struct Query*);
 int QueryDelete (struct Query*);
@@ -218,17 +226,16 @@ int openFile(struct Query*);
 
 
 /********************************************************/
-
+//Helpers
+void structToStruct(void *data1,void *data2, int dataType);
+void structToString(char* apt_salida,void *data,int dataType);
+void typeDataToString(char *salida, void *data, int dataType, int lonMax);
 /****Control de estructura de datos****/
 
-struct Nodo* crearNodo(void* dataTabla);
-void insertarNodoA(struct Nodo** InicioNodo, void* dataTabla);
-void insertarNodoZ(struct Nodo** InicioNodo, void* dataTabla);
-  
-struct Producto* newProducto(int ID_producto,const char* nombre,int cantidad,const char* descripcion, long double precio,int ID_categoria);
-void insertarProducto(struct Producto** InicioLista, int ID_producto,const char* nombre,int cantidad,const char* descripcion, long double precio,int ID_categoria);
-void freeProducto(); //por hacer
-
+void enQueue(void **nodo, void *data,int dataType);
+void deQueue(void *destino,void **nodo,int dataType);
+int getNumberItemQueue(void *, int dataType);
+void imprimirCola(void *nodo, int dataType);
 
 //Errores
 void ErrorMessage(char *message);
