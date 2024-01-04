@@ -5,9 +5,8 @@ void Auth(struct Usuario *user){
   return;
 };
 void MainMenu(struct Usuario *user){
-  //get all the data
-  //ShowMainMenu(user);
-  showPrincipalMenu(user);
+  struct Producto *nodo = NULL;
+  showPrincipalMenu(user,(void**)&nodo);
   return;
 };
 
@@ -15,7 +14,9 @@ void MainMenu(struct Usuario *user){
 void c_login(struct Usuario *user){
   struct Request request;
   struct Usuario *nodo = NULL;
-  QuerySelect(&request,user,(void**)&nodo,USUARIO);
+  enQueue((void**)&nodo,user,USUARIO);
+  QuerySelect(&request,(void**)&nodo,USUARIO);
+  deQueue((void*)user,(void**)&nodo,USUARIO);
   return;
 };
 
@@ -26,7 +27,14 @@ void c_addNewProduct(struct Usuario *user,void **nodo){
   return;
 };
 
-
 //Traer productos
+void c_getAllProducts(struct Usuario *user, char *productList){
+  struct Request request;
+  struct Producto *nodo = NULL;
+  QuerySelect(&request,(void**)&nodo,PRODUCTO);
+  //pasamos info de los nodos a string
+
+
+};
 
 //Editar productos

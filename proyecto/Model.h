@@ -212,7 +212,7 @@ void usuarioTostr(struct Query*, char*);
 int newQuery(struct Query*);
 //int QueryInsert (struct Request* request,void* data,void **nodo,int dataType);
 int QueryInsert (struct Request* request,void **nodo,int dataType);
-void QuerySelect(struct Request* request,void* data,void **nodo,int dataType);
+void QuerySelect(struct Request* request,void **nodo,int dataType);
 
 int QueryUpdate (struct Query*);
 int QueryDelete (struct Query*);

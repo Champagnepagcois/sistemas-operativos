@@ -88,7 +88,7 @@ int QueryInsert(struct Request* request,void **nodo,int dataType){
   return 0;
 };
 
-void QuerySelect(struct Request* request,void* data,void **nodo,int dataType){
+void QuerySelect(struct Request* request,void **nodo,int dataType){
   //obtener id del cliente
   request->ID_usuario = getID_Cliente(getpid());
   switch (dataType){
@@ -108,17 +108,16 @@ void QuerySelect(struct Request* request,void* data,void **nodo,int dataType){
     up(semaforo_new_request);
     /**********************************************************/
     /******************* Prepara Data **********************/
-    struct Usuario *usuario = (struct Usuario*)data;
+    struct Usuario usuario;
     //Pedimos mc
-    getShmPublic(usuario,request->ID_usuario,USUARIO);
+    getShmPublic(&usuario,request->ID_usuario,USUARIO);
     //Creamos semaforos
     int semaforo_newData,semaforo_done;
     createSemPublic(&semaforo_newData,request->ID_usuario,0);
     createSemPublic(&semaforo_done,(request->ID_usuario)*-1,0);
 
     //Escribimos los datos 
-    strcpy(usuario->apt_mc_usuario->usuario,usuario->usuario);
-    strcpy(usuario->apt_mc_usuario->password, usuario->password);
+    deQueue(usuario.apt_mc_usuario,nodo,USUARIO);
     //Espera a que se termine de configurar el servidor
     down(semaforo_done);
     sleep(0.09);
@@ -128,22 +127,23 @@ void QuerySelect(struct Request* request,void* data,void **nodo,int dataType){
     down(semaforo_newData);
     //Logica de pasar datos
     int firstData =1;
-    int count = usuario->apt_mc_usuario->count;
+    int count = usuario.apt_mc_usuario->count;
     //Validamos caso en el que no hay ninguna coincidencia
-    if(count==0) usuario->logged=0;
+    struct Usuario *userNodo = (struct Usuario*)*nodo;
+    if(count==0) userNodo->siguiente->logged=0; //usuario->logged=0;
     while(count>0){
       if(firstData==0){
         down(semaforo_newData);
       };
       //Agregamos dato a una cola
-      enQueue(nodo,usuario->apt_mc_usuario,USUARIO);
+      enQueue(nodo,usuario.apt_mc_usuario,USUARIO);
       //Actualizamos valor de count si ya se acabo no entramos al down!!
       count-=1;
       //Le decimos al servidor que hemos terminado de leer
       up(semaforo_done);
     };
-    deQueue(data,nodo,USUARIO);
-    freeShmPublic(usuario,request->ID_usuario,USUARIO);
+    //deQueue(data,nodo,USUARIO);
+    freeShmPublic(&usuario,request->ID_usuario,USUARIO);
     deleteSemPublic(&semaforo_newData);
     deleteSemPublic(&semaforo_done);
     return;
