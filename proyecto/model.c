@@ -91,14 +91,16 @@ int QueryInsert(struct Request* request,void **nodo,int dataType){
 void QuerySelect(struct Request* request,void **nodo,int dataType){
   //obtener id del cliente
   request->ID_usuario = getID_Cliente(getpid());
+  /***************** Pre-preparamos Request *******************/
+  //Pedimos mc
+  getShmPublic(request,CLAVE_SER_H_GETITEM,TYPEDATA_REQUEST);
+  int semaforo_new_request;
+  createSemPublic(&semaforo_new_request,CLAVE_SER_H_GETITEM,0);
+
+  /************************************************************/
   switch (dataType){
-  case USUARIO:
+  case USUARIO:{
     /******************* Prepara Request **********************/
-    //pedir mc para Request
-    getShmPublic(request,CLAVE_SER_H_GETITEM,TYPEDATA_REQUEST);
-    //Creamos semaforo para avisarle al servidor que hay una nueva Request
-    int semaforo_new_request;
-    createSemPublic(&semaforo_new_request,CLAVE_SER_H_GETITEM,0);
     //Asignamos valores en la request y  mc
     request->dataType = USUARIO;
     request->ID_usuario = getID_Cliente(getpid());
@@ -148,7 +150,7 @@ void QuerySelect(struct Request* request,void **nodo,int dataType){
     deleteSemPublic(&semaforo_done);
     return;
     break;
-  
+  };
   default:
     break;
   };
