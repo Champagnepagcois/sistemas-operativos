@@ -10,10 +10,9 @@ int main(){
   createThreadPublic(&thread_add,H_addItem,NULL);
   //createThreadPublic(&thread_update,H_updateItem,NULL);
   //createThreadPublic(&thread_delete,H_deleteItem,NULL);
-  sleep(100);
-  while (1){
-    /* code */
-  }
+  int semaforo_servidor;
+  createSemPublic(&semaforo_servidor,'S',0);
+  down(semaforo_servidor);
   
   return 0;
 };
