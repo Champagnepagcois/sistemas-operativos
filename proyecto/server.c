@@ -267,13 +267,10 @@ void *Dispatch_H_addItem(struct Request *request){
     while(num_data_in_request>0){
       down(semaforo_newData);
       printf("\x1b[32mnewnew Request/Add_producto\x1b[0m\n");
-      printf("\tNOMBRE:|%s|\n",producto.apt_mc_producto->nombre);
       //Generamos ID
       generateID(producto.apt_mc_producto->ID_producto);
-      printf("nombre:|%s|\n",producto.apt_mc_producto->nombre);
-      printf("des:|%s|\n",producto.apt_mc_producto->descripcion);
       structToString(salida,producto.apt_mc_producto,PRODUCTO);
-      printf("%s\n",salida);
+      //printf("%s\n",salida);
       down(semaforo_RW_file);
       openFile(&fileManager);
       fprintf(fileManager.file,"%s",salida);
@@ -284,7 +281,7 @@ void *Dispatch_H_addItem(struct Request *request){
     };
     up(semaforo_done);
     //Terminamos la conexion eliminando este hilo   
-    printf("\nServicio al cliente %d finalizado\n", ID_cliente);
+    printf("Servicio al cliente %d finalizado\n\n", ID_cliente);
     freeShmPublic(&producto,ID_cliente,PRODUCTO);
     pthread_exit(NULL);
     break;
@@ -744,7 +741,7 @@ void generateID(char *salida){
   time_t t = time(NULL);
   struct tm tiempoLocal = *localtime(&t);
   // El lugar en donde se pondrá la fecha y hora formateadas y 2 valores random
-  char string_ID[14],buffer[2];
+  char string_ID[16],buffer[2];
   char *formato = "%Y%m%d%H%M%S";
   int bytesEscritos =
   strftime(string_ID, sizeof string_ID, formato, &tiempoLocal);
