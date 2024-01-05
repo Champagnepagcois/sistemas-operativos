@@ -202,7 +202,7 @@ void *Dispatch_H_addItem(struct Request *request){
   int num_data_in_request;
 
   switch (dataType){
-  case USUARIO:
+  case USUARIO:{
     struct Usuario usuario;
     strcpy(filename,"usuario.txt");
     fileManager.fileName = filename;
@@ -228,7 +228,8 @@ void *Dispatch_H_addItem(struct Request *request){
       up(semaforo_done);
     };
     break;
-  case CATEGORIA:
+  };
+  case CATEGORIA:{
     struct Categoria categoria;
     strcpy(filename,"categoria.txt");
     fileManager.fileName = filename;
@@ -251,9 +252,10 @@ void *Dispatch_H_addItem(struct Request *request){
       up(semaforo_done);
     };
     break;
-  case PRODUCTO:
+  };
+  case PRODUCTO:{
     struct Producto producto;
-    strcpy(filename,"producto.txt\n");
+    strcpy(filename,"producto.txt");
     fileManager.fileName = filename;
     getShmPublic(&producto,ID_cliente,PRODUCTO);
     createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_PRODUCTO,1);
@@ -265,10 +267,13 @@ void *Dispatch_H_addItem(struct Request *request){
     while(num_data_in_request>0){
       down(semaforo_newData);
       printf("\x1b[32mnewnew Request/Add_producto\x1b[0m\n");
+      printf("\tNOMBRE:|%s|\n",producto.apt_mc_producto->nombre);
       //Generamos ID
       generateID(producto.apt_mc_producto->ID_producto);
-      /*structToString(salida,producto.apt_mc_producto,PRODUCTO);
-      printf("%s\n",salida);*/
+      printf("nombre:|%s|\n",producto.apt_mc_producto->nombre);
+      printf("des:|%s|\n",producto.apt_mc_producto->descripcion);
+      structToString(salida,producto.apt_mc_producto,PRODUCTO);
+      printf("%s\n",salida);
       down(semaforo_RW_file);
       openFile(&fileManager);
       fprintf(fileManager.file,"%s",salida);
@@ -283,7 +288,8 @@ void *Dispatch_H_addItem(struct Request *request){
     freeShmPublic(&producto,ID_cliente,PRODUCTO);
     pthread_exit(NULL);
     break;
-  case VENTA:
+  };
+  case VENTA:{
     struct Venta venta;
     strcpy(filename,"venta.txt");
     fileManager.fileName = filename;
@@ -305,8 +311,9 @@ void *Dispatch_H_addItem(struct Request *request){
       num_data_in_request-=1;
       up(semaforo_done);
     };
+    };
     break;
-    case DETALLEVENTA:
+    case DETALLEVENTA:{
     struct DetalleVenta detalleventa;
     strcpy(filename,"detalleventa.txt");
     fileManager.fileName = filename;
@@ -329,7 +336,8 @@ void *Dispatch_H_addItem(struct Request *request){
       up(semaforo_done);
     };
     break;
-  case PROVEEDOR:
+  };
+  case PROVEEDOR:{
     struct Proveedor proveedor;
     strcpy(filename,"proveedor.txt");
     fileManager.fileName = filename;
@@ -352,7 +360,8 @@ void *Dispatch_H_addItem(struct Request *request){
       up(semaforo_done);
     };
     break;
-  case ADQUISICION:
+  };
+  case ADQUISICION:{
     struct Adquisicion adquisicion;
     strcpy(filename,"adquisicion.txt");
     fileManager.fileName = filename;
@@ -374,7 +383,8 @@ void *Dispatch_H_addItem(struct Request *request){
       num_data_in_request-=1;
       up(semaforo_done);
     };
-    break;  
+    break; 
+  }; 
   default:
     break;
   };
@@ -734,7 +744,7 @@ void generateID(char *salida){
   time_t t = time(NULL);
   struct tm tiempoLocal = *localtime(&t);
   // El lugar en donde se pondrá la fecha y hora formateadas y 2 valores random
-  char string_ID[70],buffer[2];
+  char string_ID[14],buffer[2];
   char *formato = "%Y%m%d%H%M%S";
   int bytesEscritos =
   strftime(string_ID, sizeof string_ID, formato, &tiempoLocal);
