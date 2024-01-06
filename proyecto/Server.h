@@ -75,7 +75,7 @@ struct Categoria{
 };
 
 struct Producto {
-  char ID_producto [16]; //lon 16
+  char ID_producto [17]; //lon 16
   char nombre [20];
   int cantidad;   // lon 4char
   char descripcion [50]; 
@@ -190,6 +190,8 @@ void DeleteData();
 //Helpers
 void structToString(char* apt_salida,void *data,int dataType);
 void typeDataToString(char *salida, void *data, int dataType, int lonMax);
+void stringToStruct(const char* string,void *data,int dataType);
+
 void generateID(char *salida);
 void cifrar(char *password);
 void descifrar(char *password);

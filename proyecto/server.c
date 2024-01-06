@@ -72,7 +72,7 @@ void *H_getItem(){
 void *Dispatch_H_getItem(struct Request *request){
   printf("\x1b[32mNueva conexion ");
   printf("\x1b[0mcon el cliente: ");
-  printf("\x1b[34m%d\n",request->ID_usuario);
+  printf("\x1b[34m%d\n\x1b[0m",request->ID_usuario);
   int dataType = request->dataType;
   pid_t ID_cliente = request->ID_usuario;
   struct FileManager fileManager;
@@ -81,7 +81,7 @@ void *Dispatch_H_getItem(struct Request *request){
   int num_data_in_response;
 
   switch (dataType){
-  case USUARIO:
+  case USUARIO:{
     struct Usuario usuario;
     struct Usuario *nodo =NULL;
     strcpy(filename,"usuario.txt");
@@ -140,6 +140,69 @@ void *Dispatch_H_getItem(struct Request *request){
     pthread_exit(NULL);
 
     break;
+  };
+  case PRODUCTO:{
+    struct Producto producto;
+    struct Producto *nodo =NULL;
+    strcpy(filename,"producto.txt");
+    fileManager.fileName = filename;
+    getShmPublic(&producto,ID_cliente,PRODUCTO);
+    createSemPublic(&semaforo_RW_file,CLAVE_SER_H_D_IO_PRODUCTO,1);
+    createSemPublic(&semaforo_newData,ID_cliente,0);
+    createSemPublic(&semaforo_done,ID_cliente*-1,0);
+    //Le avisa al cliente que se ha terminado de configurar el servidor
+    up(semaforo_done);
+
+
+
+    //Recibimos Request
+    down(semaforo_done);
+    //Leemos y copiamos datos
+    structToStruct(&producto,producto.apt_mc_producto,PRODUCTO);
+    /*
+    printf("\n\n%s\n",usuario.apt_mc_usuario->usuario);
+    printf("%s\n\n",usuario.apt_mc_usuario->password);
+    */
+    //Buscamos en archivo y agregamos resultados en la cola
+    down(semaforo_RW_file);
+    searchInDoc(&fileManager,(void**)&nodo,&producto,PRODUCTO); //Buscamos en el archivo
+    up(semaforo_RW_file);
+    //Obtenemos el numero de nodos en la cola.
+    int count =getNumberItemQueue(nodo,PRODUCTO);
+    //printf("\nNumero de resultados:%d\n",count);
+    //Escribimos en mc count
+    producto.apt_mc_producto->count = count;
+    //Validamos que haya almenos 1 valor
+    if(count ==0){
+      up(semaforo_newData);
+    };
+    int firstData =1;
+    while(count>0){
+      printf("\x1b[32mnew Request/Get_product\x1b[0m\n");
+      if(firstData ==0){//No es primera vez entonces se queda aqui
+        down(semaforo_done);//hasta que acabe el cliente
+      };
+      //Escribimos informacion del nodo en la cola en mc
+      deQueue(producto.apt_mc_producto,(void**)&nodo,PRODUCTO);
+      /*
+      char salida [200];
+      structToString(salida,usuario.apt_mc_usuario,USUARIO);
+      printf("Dato de cola en MC:%s\n",salida);
+      */
+
+      firstData =0;//Ya no es la primera vez
+      up(semaforo_newData);
+      count-=1;
+    };
+    //Terminamos la conexion eliminando este hilo   
+    printf("\x1b[0mServicio al cliente ");
+    printf("\x1b[34m%d ",ID_cliente);
+    printf("\x1b[31mfinalizado\x1b[0m\n");
+    freeShmPublic(&producto,ID_cliente,PRODUCTO);
+    pthread_exit(NULL);
+
+    break;
+  };
   default:
     break;
   }
@@ -280,8 +343,10 @@ void *Dispatch_H_addItem(struct Request *request){
       up(semaforo_done);
     };
     up(semaforo_done);
-    //Terminamos la conexion eliminando este hilo   
-    printf("Servicio al cliente %d finalizado\n\n", ID_cliente);
+    //Terminamos la conexion eliminando este hilo
+    printf("\x1b[0mServicio al cliente ");
+    printf("\x1b[34m%d ",ID_cliente);
+    printf("\x1b[31mfinalizado\x1b[0m\n");
     freeShmPublic(&producto,ID_cliente,PRODUCTO);
     pthread_exit(NULL);
     break;
@@ -396,8 +461,8 @@ void searchInDoc(struct FileManager *filemanager,void **nodo,void *data,int data
   char linea[200];
   
   switch(dataType){
-    case USUARIO:
-    char pass_des[20];
+    case USUARIO:{
+      char pass_des[20];
       int TAM_LINEA_USUARIO=84;
       struct Usuario tmpUsuario;
       struct Usuario *usuario = (struct Usuario*)data;
@@ -421,9 +486,35 @@ void searchInDoc(struct FileManager *filemanager,void **nodo,void *data,int data
       //Imprimimos contenido de la cola
       //imprimirCola(*nodo,USUARIO);
       break;
+    };
+    case PRODUCTO:{
+      printf("LLego hasta SearchInDoc\n");
+      int TAM_LINEA_PRODUCTO = 127;
+      //printf("Aqui 0?\n");
+      struct Producto tmpProducto;
+      //printf("Aqui 1?\n");
+      struct Producto *producto = (struct Producto*)data;
+      //printf("Aqui 2?\n");
+      while(fgets(linea,TAM_LINEA_PRODUCTO,filemanager->file) !=NULL){
+        //printf("%d|%d|%d\n",linea[124],linea[125],linea[126]);
+        stringToStruct(linea,&tmpProducto,PRODUCTO);
+        printf("%s\t%s\t%s\t%Lf\t%d\t%s\t\n",tmpProducto.ID_producto,tmpProducto.nombre,tmpProducto.descripcion,tmpProducto.precio,tmpProducto.existencia,tmpProducto.ID_categoria);
+        if(producto->count ==1){//Si hay parametros en la consulta
+          if(tmpProducto.nombre[0]==producto->nombre[0]|| tmpProducto.descripcion[0]==producto->descripcion[0]|| tmpProducto.precio<=producto->precio){
+            enQueue(nodo,&tmpProducto,PRODUCTO);
+          };
+        }else{
+          enQueue(nodo,&tmpProducto,PRODUCTO);
+        };
+      };
+      closeFile(filemanager);
+      //imprimirCola(*nodo,PRODUCTO);
+      break;
+    };
     default:
       break;
   };
+  printf("Salio de SearchInDoc\n");
 };
 
 /****************************************************************/
@@ -585,7 +676,7 @@ void closeFile(struct FileManager *fileManager){
 
 void structToString(char* apt_salida,void *data,int dataType){
   switch (dataType){
-  case USUARIO:
+  case USUARIO:{
     struct Usuario *usuario = (struct Usuario*)data;
     apt_salida[0]='\0';
     //typeDataToString(apt_salida,usuario->ID_usuario,DATATYPE_ID,16);
@@ -603,14 +694,16 @@ void structToString(char* apt_salida,void *data,int dataType){
     typeDataToString(apt_salida,&(usuario->logged),DATATYPE_INT,1);
     strcat(apt_salida,"\n");
     break;
-  case CATEGORIA:
+  };
+  case CATEGORIA:{
     struct Categoria *categoria = (struct Categoria*)data;
     apt_salida[0]='\0';
     typeDataToString(apt_salida,categoria->ID_categoria,DATATYPE_CHAR,16);
     strcat(apt_salida,"\t");
     typeDataToString(apt_salida,categoria->descripcion,DATATYPE_CHAR,25);
     strcat(apt_salida,"\n");
-    break;  
+    break;
+  }; 
   case PRODUCTO:
     struct Producto *producto = (struct Producto*)data;
     apt_salida[0]='\0';
@@ -719,9 +812,10 @@ void stringToStruct(const char *string,void *data, int dataType){ //Por terminar
     sscanf(string,"%16s\t%25s",categoria.ID_categoria,categoria.descripcion);
     break;
   case PRODUCTO:
-    struct Producto producto = *(struct Producto*)data;
-    sscanf(string,"%16s\t%20s\t%d\t%50s\t%Lf\t%d\t%d",
-    producto.ID_producto,producto.nombre,producto.cantidad,producto.descripcion,producto.precio,producto.ID_categoria,producto.existencia);
+    struct Producto *producto = (struct Producto*)data;
+    int ret = sscanf(string, "%16[^\t]\t%20[^\t]\t%50[^\t]\t%Lf\t%d\t%16s",    // dato1, dato2, dato3, &dato4, &dato5, dato6);
+    producto->ID_producto,producto->nombre,producto->descripcion,&(producto->precio),&(producto->existencia),producto->ID_categoria);
+    //printf("\t\t|%s|%s|\t\t",producto->ID_producto,producto->nombre);
     break;
   case VENTA:
     struct Venta venta = *(struct Venta*)data;
@@ -813,7 +907,7 @@ void structToStruct(void *dest,void *src, int dataType){
     destino->typeUser = fuente->typeUser;
     destino->logged = fuente->logged;
     break;
-  }
+  };
   case PRODUCTO:{
     struct Producto *destino = (struct Producto*)dest;
     struct Producto *fuente = (struct Producto*)src;
@@ -824,7 +918,8 @@ void structToStruct(void *dest,void *src, int dataType){
     destino->precio = fuente->precio;
     strcpy(destino->ID_categoria,fuente->ID_categoria);
     destino->existencia = fuente->existencia;
-    break;}
+    break;
+  };
   //Falta terminar
   default:
     break;
